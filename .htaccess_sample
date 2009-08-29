@@ -1,0 +1,4 @@
+AuthType Basic
+AuthName "Web Forms Service"
+AuthUserFile .htpasswd
+require user test
