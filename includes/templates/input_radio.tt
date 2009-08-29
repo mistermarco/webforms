@@ -1,0 +1,4 @@
+        <p class="[% element.class %]">
+          <input type="radio" id="[% element.id %]" class="[% element.class %]" name="[% element.name %]" value="[% element.label %]" />
+          <label for="[% element.id %]">[% element.label %]</label>
+        </p>

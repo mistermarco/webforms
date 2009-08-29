@@ -1,0 +1,52 @@
+[% USE date %]
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- InstanceBegin template="/Templates/secondary.dwt" codeOutsideHTMLIsLocked="false" -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Form Management</title>
+<!-- Base stylesheet which imports typography, resets, header/footer layout, and other miscellaneous styles -->
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/base2.css" />
+<!-- Page specific stylesheet for middle layout section (sidebars and content_main) -->
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary.css" />
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary_nocol.css" />
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/services/webforms/form_builder.css" />
+<!--[if IE 6]>
+  <style type="text/css">
+    @import url(https://www.stanford.edu/dept/its/css/modern/ie/ie_global.css);
+  </style>
+<![endif]-->
+<!--[if IE 7]>
+  <style type="text/css">
+	@import url(https://www.stanford.edu/dept/its/css/modern/ie/ie7.css);
+  </style>
+<![endif]-->
+</head>
+<body>
+<div class="skip"><a href="#content">Skip to Content</a></div>
+<div id="container">
+  [% INCLUDE header.tt %]
+    <div id="breadcrumb">
+      <p><a href="http://itservices.stanford.edu/">IT Services</a> &raquo; <a href="http://web.stanford.edu/">Stanford Web Services</a> &raquo; <a href="formbuilder.cgi">Form Management</a> &raquo; Confirm Form Deletion</p>
+    </div> 
+  <div id="title">
+    <h1><!-- InstanceBeginEditable name="Page Title" -->Form Management<!-- InstanceEndEditable --></h1>
+  </div>
+  <div id="content_wide">
+    <div class="notice-box">
+        <h2>Please Confirm</h2>
+        <p>Are you sure you want to delete "[% form.name %]"? This form has [% IF form.total_database_submissions > 0 %]<a href="formbuilder.cgi?action=view_entries&amp;form_id=[% form.id %]">[% IF form.total_database_submissions == 1 %]1 database entry[% ELSE %][% form.total_database_submissions %] database entries[% END %]</a> which will also be deleted.[% ELSE %]no database entries[% END %].</p>
+        <p>This cannot be undone.</p>
+        <form action="formbuilder.cgi" method="post">
+          <button type="submit" class="button">Yes, Delete This Form</button>
+          <input type="hidden" name="action" value="delete_form" />
+          <input type="hidden" name="form_id" value="[% form.id %]" />
+        </form>
+        <br />
+        <a href="formbuilder.cgi" class="button">No, Cancel</a>
+    </div>
+  [% INSERT footer.html %]
+</div>
+</body>
+<!-- InstanceEnd -->
+</html>

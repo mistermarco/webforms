@@ -1,0 +1,11 @@
+[% error_field_name = "error_" _ element.name %]
+<p class="[% element.class %] [% IF page.errors.$error_field_name %]error-field[% END %]">
+    [% IF page.errors.$error_field_name %]<span class="error">[% page.errors.$error_field_name %]</span>[% END %]
+    <label for="[% element.id %]">[% element.label %][% IF element.is_required %] <abbr class="required" title="Required Field">*</abbr>[% END %]</label>
+    <br />
+    <select id="[% element.id %]" class="[% element.class %]" name="[% element.name %]">
+        [% FOREACH item = element.items %]
+        <option value="[% item.value %]"  [% IF CGI.param(element.name) == item.value %]selected="selected"[% END %]>[% item.label %]</option>
+        [%- END %]
+    </select>
+</p>

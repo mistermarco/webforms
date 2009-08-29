@@ -1,0 +1,18 @@
+[% error_field_name = "error_" _ element.name %]
+<fieldset class="[% element.class %] [% IF page.errors.$error_field_name %]error-field[% END %]">
+    <legend>
+        [% IF page.errors.$error_field_name %]<span class="error">[% page.errors.$error_field_name %]</span>[% END %]
+        <span>[% element.label %][% IF element.is_required %] <abbr class="required" title="Required Field">*</abbr>[% END %]</span>
+    </legend>
+	<table class="survey">
+	[% first_element = element.elements.first %]
+	<th></th>
+	[% # we use the items for just the first element to build the table's headings %]
+	[% FOREACH radio = first_element.items %]
+	<th scope="col">[% radio.value %]</th>
+	[%- END %]
+    [% FOREACH element = element.elements %]
+    [% INCLUDE $element.template %]
+    [%- END %]
+	</table>
+</fieldset>

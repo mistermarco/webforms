@@ -1,0 +1,8 @@
+<tr>
+  <td class="question" scope="row">[% element.label %]</td>
+  [% FOREACH item = element.items %]
+  <td class="[% item.class %]">
+      <input type="radio" id="item_[% element.id %]_[% item.id %]" class="[% item.class %]" name="[% element.name %]" title="[% item.label %]" value="[% item.label %]" [% IF (!(CGI.param(element.name).defined) && loop.first) %]checked="checked"[% END %][% IF CGI.param(element.name) == item.value %]checked="checked"[% END %]/><label for="item_[% element.id %]_[% item.id %]">[% loop.count %]</label>
+  </td>
+  [%- END %]
+</tr>

@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Entries</title>
+<!-- Base stylesheet which imports typography, resets, header/footer layout, and other miscellaneous styles -->
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/base2.css" />
+<!-- Page specific stylesheet for middle layout section (sidebars and content_main) -->
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary.css" />
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary_nocol.css" />
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/services/webforms/form_builder.css" />
+<!--[if IE 6]>
+  <style type="text/css">
+    @import url(https://www.stanford.edu/dept/its/css/modern/ie/ie_global.css);
+  </style>
+<![endif]-->
+<!--[if IE 7]>
+  <style type="text/css">
+	@import url(https://www.stanford.edu/dept/its/css/modern/ie/ie7.css);
+  </style>
+<![endif]-->
+</head>
+<body>
+    <div class="skip"><a href="#content">Skip to Content</a></div>
+    <div id="container">
+    [% INCLUDE header.tt %]
+    <div id="breadcrumb">
+      <p><a href="http://itservices.stanford.edu/">IT Services</a> &raquo; <a href="http://web.stanford.edu/">Stanford Web Services</a> &raquo; <a href="formbuilder.cgi">Form Management</a> &raquo; Data Viewer for [% form.name %]</p>
+    </div> 
+    <div id="title">
+        <h1>Entries</h1>
+    </div>
+    [% IF page.message -%]
+        <div class="notice-box">
+            <h2>Notice</h2>
+            <p>[% page.message %]</p>
+        </div>
+    [% END -%]
+    <div id="content_wide">
+        <h2>[% form.name %]</h2>
+        <ul>
+            <li>Export your data in <a href="formbuilder.cgi?action=export_entries_as_excel&amp;form_id=[% form.id %]">Excel Format (.xls)</a></li>
+            <li>Export your data in <a href="formbuilder.cgi?action=export_entries_as_csv&amp;form_id=[% form.id %]">CSV Format (.csv)</a></li>
+        </ul>
+        <form method="post" action="formbuilder.cgi">
+        <div class="scroll-box">
+            <table class="entries">
+                <tr>
+                    <th></th>
+                    [% FOREACH label = field_labels %]
+                    <th>[% label %]</th>
+                    [% END %]
+                </tr>
+                [% FOREACH row = data %]
+                <tr>
+                    <td><input type="checkbox" name="submission_id" value="[% row.0 %]"></td>
+                    [% FOREACH field IN row %]
+                    <td><pre>[% field %]</pre></td>
+                    [% END %]
+                </tr>
+                [% END %]
+            </table>
+        </div>
+        <input type="hidden" name="form_id" value="[% form.id %]" />
+        <input type="hidden" name="action" value="delete_entries_confirm" />
+        <input type="submit" value="Delete Selected Entries" />
+        </form>
+    </div>
+    [% INSERT footer.html %]
+    </div>
+</body>
+</html>

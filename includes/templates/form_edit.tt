@@ -1,0 +1,69 @@
+    <div class="highlight-box" onclick="document.getElementById('[% form.id %]_edit').submit();" title="Click to Edit">
+        <ul class="edit-links">
+            <li>
+                <form id="[% form.id %]_edit" action="formbuilder.cgi" method="post">
+                    <input type="hidden" name="form_id" value="[% form.id %]" />
+                    <input type="hidden" name="action" value="edit_form_properties" />
+                    <button type="submit">Edit</button>
+                </form>
+            </li>
+        </ul>
+        <div class="form-content">
+            <h1>[% form.name %]</h1>
+            <p>[% form.description %]</p>
+        </div>
+    </div>
+    [% IF form.has_required_fields %]<div class="plain-box">
+       <p><strong><abbr class="required" title="Required Field">*</abbr> indicates required fields.</strong></p>
+    </div>
+    [% END %]
+    [% FOREACH node = form.nodes %]
+    <div class="highlight-box [% IF loop.last AND page.new_node_added %]new-field[% END %]" id="[% node.id %]" title="Click to Edit">
+        <ul class="edit-links">
+            <li>
+                <form id="[% node.id %]_move_node_up" action="formbuilder.cgi" method="post">
+                    <input type="hidden" name="form_id" value="[% form.id %]" />
+                    <input type="hidden" name="node_id" value="[% node.id %]" />
+                    <input type="hidden" name="action" value="move_node_up" />
+                    <input type="hidden" name="node_position" value="[% loop.index %]" />
+                    <button type="submit"><img src="https://www.stanford.edu/dept/its/images/services/webforms/icons/arrow_up.png" width="16" height="16" alt="Move Field Up" title="Move Field Up"></button>
+                </form>
+            </li>
+            <li>
+                <form id="[% node.id %]_move_node_down" action="formbuilder.cgi" method="post">
+                    <input type="hidden" name="form_id" value="[% form.id %]" />
+                    <input type="hidden" name="node_id" value="[% node.id %]" />
+                    <input type="hidden" name="action" value="move_node_down" />
+                    <input type="hidden" name="node_position" value="[% loop.index %]" />
+                    <button type="submit"><img src="https://www.stanford.edu/dept/its/images/services/webforms/icons/arrow_down.png" width="16" height="16" alt="Move Field Down" title="Move Field Down"></button>
+                </form>
+            </li>
+            <li>
+                <form id="[% node.id %]_edit_node" action="formbuilder.cgi" method="post">
+                    <input type="hidden" name="form_id" value="[% form.id %]" />
+                    <input type="hidden" name="node_id" value="[% node.id %]" />
+                    <input type="hidden" name="action" value="edit_node" />
+                    <input type="hidden" name="node_position" value="[% loop.index %]" />
+                    <button type="submit">Edit</button>
+                </form>
+            </li>
+            <li>
+                <form id="[% node.id %]_delete_node" action="formbuilder.cgi" method="post">
+                    <input type="hidden" name="form_id" value="[% form.id %]" />
+                    <input type="hidden" name="node_id" value="[% node.id %]" />
+                    <input type="hidden" name="action" value="delete_node" />
+                    <input type="hidden" name="node_position" value="[% loop.index %]" />
+                    <button type="submit" title="Click to Delete">Delete</button>
+                </form>
+            </li>
+        </ul>
+        <div class="section-content" onclick="document.getElementById('[% node.id %]_edit_node').submit();">
+            [% node.as_html %]
+        </div>
+    </div>
+    [% END %]
+    <div>
+        <p class="action">
+            <button disabled="disabled" class="submit" type="submit">Submit Form</button>
+        </p>
+    </div>

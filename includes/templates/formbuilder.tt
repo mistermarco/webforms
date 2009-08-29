@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- InstanceBegin template="/Templates/secondary.dwt" codeOutsideHTMLIsLocked="false" -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+<title>Edit Form</title>
+<!-- Base stylesheet which imports typography, resets, header/footer layout, and other miscellaneous styles -->
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/base2.css" />
+<!-- Page specific stylesheet for middle layout section (sidebars and content_main) -->
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary.css" />
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary_nocol.css" />
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/services/webforms/form_builder.css" />
+<!--[if IE 6]>
+  <style type="text/css">
+    @import url(https://www.stanford.edu/dept/its/css/modern/ie/ie_global.css);
+  </style>
+<![endif]-->
+<!--[if IE 7]>
+  <style type="text/css">
+	@import url(https://www.stanford.edu/dept/its/css/modern/ie/ie7.css);
+  </style>
+<![endif]-->
+<script src="SpryAssets/SpryTabbedPanels.js" type="text/javascript"></script>
+<link href="SpryAssets/SpryTabbedPanels.css" rel="stylesheet" type="text/css" />
+<style type="text/css">body {behavior:url("https://www.stanford.edu/dept/its/scripts/services/webforms/csshover2.htc");}</style>
+<!-- InstanceBeginEditable name="head" --><!-- InstanceEndEditable --><!-- InstanceParam name="body class" type="text" -->
+</head>
+<body>
+<div class="skip">
+    <ul>
+        <li><a href="#build">Skip to Build tab</a></li>
+        <li><a href="#edit">Skip to Editing Field</a></li>
+        <li><a href="#publish">Skip to Publishing Options</a></li>
+        <li><a href="#content_right">Skip to Form Preview</a></li>
+    </ul>
+</div>
+<div id="container">
+    [% INCLUDE header.tt %]
+    <div id="breadcrumb">
+      <p><a href="http://itservices.stanford.edu/">IT Services</a> &raquo; <a href="http://web.stanford.edu/">University Web Services</a> &raquo; <a href="http://www.stanford.edu/services/webforms/">Web Forms Service</a> &raquo; <a href="formbuilder.cgi">Form Management</a> &raquo; Editing [% form.name %]</p>
+    </div> 
+    <div id="content_left"><!-- InstanceBeginEditable name="Main Content Left" -->
+        [% IF page.notice %]
+        <div class="notice-box">
+            <h2>Notice</h2>
+            <ul>
+                <li>explanation text line 1</li>
+                <li>explanation text line 2</li>
+            </ul>
+        </div>
+        [% END -%]
+        <div id="TabbedPanels1" class="TabbedPanels">
+        <ul class="TabbedPanelsTabGroup">
+            <li class="TabbedPanelsTab"><h2>Build</h2></li>
+            <li class="TabbedPanelsTab"><h2>Edit</h2></li>
+            <li class="TabbedPanelsTab"><h2>Publish</h2></li>
+        </ul>
+        <div class="TabbedPanelsContentGroup">
+            <div class="TabbedPanelsContent" id="build">
+                [% INCLUDE formbuilder/build.tt %]
+            </div>
+            <div class="TabbedPanelsContent" id="edit">
+                [% INCLUDE formbuilder/edit.tt %]
+            </div>
+            <div class="TabbedPanelsContent" id="publish">
+                [% INCLUDE formbuilder/publish.tt %]
+            </div>
+        </div>
+    </div>
+    </div>
+    <div id="content_right"><!-- InstanceBeginEditable name="Main Content Right" -->
+        <h2 class="preview">Preview / Edit</h2>
+        [% IF page.preview_notice -%]
+        <div class="notice-box">
+            <h2>Notice</h2>
+            <ul>
+                <li>explanation text line 1</li>
+                <li>explanation text line 2</li>
+            </ul>
+        </div>
+        [% END -%]
+        <div id="content_preview">
+        [% INCLUDE form_edit.tt %]
+        </div>
+    <!-- InstanceEndEditable --> </div>
+    [% INSERT footer.html %]
+</div>
+<script type="text/javascript">
+<!--
+var TabbedPanels1 = new Spry.Widget.TabbedPanels("TabbedPanels1", { defaultTab: [% page.tab_number %] });
+//-->
+</script>
+</body>
+<!-- InstanceEnd -->
+</html>

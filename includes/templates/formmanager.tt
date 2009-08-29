@@ -1,0 +1,94 @@
+[% USE date %]
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- InstanceBegin template="/Templates/secondary.dwt" codeOutsideHTMLIsLocked="false" -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Form Management</title>
+<!-- Base stylesheet which imports typography, resets, header/footer layout, and other miscellaneous styles -->
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/base2.css" />
+<!-- Page specific stylesheet for middle layout section (sidebars and content_main) -->
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary.css" />
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary_nocol.css" />
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/services/webforms/form_builder.css" />
+<!--[if IE 6]>
+  <style type="text/css">
+    @import url(https://www.stanford.edu/dept/its/css/modern/ie/ie_global.css);
+  </style>
+<![endif]-->
+<!--[if IE 7]>
+  <style type="text/css">
+	@import url(https://www.stanford.edu/dept/its/css/modern/ie/ie7.css);
+  </style>
+<![endif]-->
+</head>
+<body>
+<div class="skip"><a href="#content">Skip to Content</a></div>
+<div id="container">
+  [% INCLUDE header.tt %]
+    <div id="breadcrumb">
+      <p><a href="http://itservices.stanford.edu/">IT Services</a> &raquo; <a href="http://web.stanford.edu/">University Web Services</a> &raquo; <a href="http://www.stanford.edu/services/webforms/">Web Forms Service</a> &raquo; Form Management</p>
+    </div> 
+  <div id="title">
+    <h1><!-- InstanceBeginEditable name="Page Title" -->Form Management<!-- InstanceEndEditable --></h1>
+  </div>
+  <div id="content_wide">
+      <p class="counter">[% user.forms.size || 0 %] out of [% user.max_forms %] forms</p>
+      <form action="formbuilder.cgi" method="post">
+        <button type="submit" class="button">Create New Form</button>
+        <input type="hidden" name="action" value="create_new_form" />
+      </form>
+    <form>
+      [% IF page.message -%]
+      <div class="notice-box">
+          <h2>Notice</h2>
+          <p>[% page.message %]</p>
+      </div>
+      [% END -%]
+      [% IF user.forms.size > 0 %]
+      <h2>My Forms</h2>
+      <table class="manage">
+        <tr>
+          <th>Name</th>
+          <th>Entries</th>
+          <th>Status</th>
+          <th>Creation Date</th>
+          <th>Delete</th>
+          <th>Creator</th>
+        </tr>
+        [% FOREACH form = user.forms %]
+        <tr>
+          <td><a href="formbuilder.cgi?action=edit_form&amp;form_id=[% form.form_id %]">[% form.name %]</a></td>
+          <td>[% IF form.total_database_submissions > 0 %]<a href="formbuilder.cgi?action=view_entries&amp;form_id=[% form.form_id %]">[% IF form.total_database_submissions == 1 %]1 entry[% ELSE %][% form.total_database_submissions %] entries[% END %]</a>[% ELSE %]No entries[% END %]</td>
+          <td>[% IF form.is_live == 1 %]<a href="[% form.url %]">Live</a>[% ELSE %]Not Live[% END %]</td>
+          <td>[% form.date_created %]</td>
+          <td><a href="formbuilder.cgi?action=confirm_delete_form&amp;form_id=[% form.form_id %]">Delete</a></td>
+          <td>[% form.creator %]</td>
+        </tr>
+        [% END %]
+      </table>
+      [% ELSE %]
+      <div class="notice-box">
+          <h2>Welcome!</h2>
+          <p>You have no forms to manage yet, but that's easy enough to remedy: <a href="formbuilder.cgi?action=create_new_form" class="button" title="Create New Form">Create New Form</a></p>
+      </div>
+      [% END %]
+      </form>
+      <hr />
+      <form action="formbuilder.cgi" method="post">
+        <input type="hidden" name="action" value="add_form_by_url" />
+        <p>You can manage forms created by others if you are listed as an administrator for the web directory where that form resides. To check, enter the form's URL below (e.g. http://www.stanford.edu/dept/its/form.fb) and click Add.</p>
+      <p class="addurl [% IF page.error_form_url %]error-field[% END %]">Form URL:
+        [% IF page.error_form_url %]<span class="error">[% page.error_form_url %]</span>[% END %]
+        <input type="text" name="form_url" size="40" value="[% page.form_url %]" />
+        <input type="submit" value="Add" />
+      </p>
+    </form>
+    <hr />
+    <p>Note: The Stanford Web Forms Service must not be used to gather and store <a href="http://www.stanford.edu/group/security/securecomputing/dataclass_chart.html">restricted or sensitive data</a>.</p>
+    <!-- InstanceEndEditable --> </div>
+  [% INSERT footer.html %]
+</div>
+</body>
+<!-- InstanceEnd -->
+</html>

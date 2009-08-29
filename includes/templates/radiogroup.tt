@@ -1,0 +1,13 @@
+[% error_field_name = "error_" _ element.name %]
+<fieldset class="[% element.class %] [% IF page.errors.$error_field_name %]error-field[% END %]">
+    <legend>
+        [% IF page.errors.$error_field_name %]<span class="error">[% page.errors.$error_field_name %]</span>[% END %]
+        <span>[% element.label %][% IF element.is_required %] <abbr class="required" title="Required Field">*</abbr>[% END %]</span>
+    </legend>
+    [% FOREACH item = element.items %]
+    <p class="[% item.class %]">
+      <input type="radio" id="[% item.id %]" class="[% item.class %]" name="[% element.name %]" value="[% item.label %]" [% IF (!(CGI.param(element.name).defined) && loop.first) %]checked="checked"[% END %][% IF CGI.param(element.name) == item.value %]checked="checked"[% END %]/>
+      <label for="[% item.id %]">[% item.label %]</label>
+    </p>
+    [%- END %]
+ </fieldset>

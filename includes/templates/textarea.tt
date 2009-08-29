@@ -1,0 +1,7 @@
+    [% error_field_name = "error_" _ element.name %]
+    <p class="[% element.class %] [% IF page.errors.$error_field_name %]error-field[% END %]">
+        [% IF page.errors.$error_field_name %]<span class="error">[% page.errors.$error_field_name %]</span>[% END %]
+        <label for="[% element.id %]">[% element.label %][% IF element.is_required %] <abbr class="required" title="Required Field">*</abbr>[% END %]</label>
+        <br />
+        <textarea id="[% element.id %]" class="[% element.class %]" name="[% element.name %]" rows="4" cols="45">[% CGI.param(element.name) | html %]</textarea>
+    </p>

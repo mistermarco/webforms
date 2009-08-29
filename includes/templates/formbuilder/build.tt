@@ -1,0 +1,118 @@
+<div class="content-box">
+    [% IF page.confirmations.build -%]
+    <div class="confirm-box">
+        <h2>[% page.confirmations.build.header %]</h2>
+        <p>[% page.confirmations.build.message %]</p>
+    </div>
+    [% END -%]
+    [% IF page.errors.build -%]
+    <div class="error-box">
+        <h2>[% page.errors.build.header %]</h2>
+        <p>[% page.errors.build.message %]</p>
+    </div>
+    [% END -%]
+    <p>Add fields by clicking on the buttons below. The new field will appear in the preview pane at the bottom of the form.</p>
+    <h3>Basic Fields</h3>
+    <ul class="button-list">
+        <li>
+	    <form action="formbuilder.cgi" method="post">
+                <button type="submit">Single Line Text</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="input" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+	    <form action="formbuilder.cgi" method="post">
+                <button type="submit">Paragraph Text</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="textarea" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+	    <form action="formbuilder.cgi" method="post">
+                <button type="submit">Radio Buttons</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="select_radio" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+	    <form action="formbuilder.cgi" method="post">
+                <button type="submit">Checkboxes</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="select_checkbox" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+	    <form action="formbuilder.cgi" method="post">
+                <button type="submit">Drop Down List</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="select" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+	    <form action="formbuilder.cgi" method="post">
+                <button type="submit">Section Heading</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="output_section_header" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+    </ul>
+    <h3>Advanced Fields</h3>
+    <ul class="button-list">
+        <li>
+            <form action="formbuilder.cgi" method="post">
+                <button type="submit">Name</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="collection_name" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+            <form action="formbuilder.cgi" method="post">
+                <button type="submit">Address</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="collection_address" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+            <form action="formbuilder.cgi" method="post">
+                <button type="submit">Email Address</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="input_email" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+            <form action="formbuilder.cgi" method="post">
+                <button type="submit">URL</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="input_url" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+            <form action="formbuilder.cgi" method="post">
+                <button type="submit">Phone Number</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="input_phone" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+        <li>
+            <form action="formbuilder.cgi" method="post">
+                <button type="submit">Survey [BETA]</button>
+                <input type="hidden" name="action" value="add_node" />
+                <input type="hidden" name="node_type" value="collection_likert" />
+                <input type="hidden" name="form_id" value="[% form.id %]" />
+            </form>
+        </li>
+    </ul>
+    <div class="clear">&nbsp;</div>
+</div>

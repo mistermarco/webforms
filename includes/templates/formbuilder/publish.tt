@@ -1,0 +1,74 @@
+<div class="content-box">
+    [% IF page.confirmations.publishing -%]
+    <div class="confirm-box">
+        <h2>[% page.confirmations.publishing.header %]</h2>
+        <p>[% page.confirmations.publishing.message %]</p>
+    </div>
+    [% END -%]
+    [% IF page.errors.publishing -%]
+    <div class="error-box">
+        <h2>[% page.errors.publishing.header %]</h2>
+        <p>[% page.errors.publishing.message %]</p>
+    </div>
+    [% END -%]
+    <form action="formbuilder.cgi" method="post">
+        <h3>Displaying Confirmation</h3>
+        <p>After users submit your form and all fields are checked, it's a good idea to either show them a Thank You message or to redirect them to a Thank You page. Choose the method you prefer below, enter a message or a URL, and save the settings by clicking on the submit button below.</p>
+        <fieldset>
+            <legend>Confirmation Method</legend>
+            <input type="radio" id="radio1" name="confirmation_method" value="text" [% IF values.form.confirmation_method == 'text' %]checked="checked"[% END %] />
+            <label for="radio1">Show Message</label><br />
+            <p class="textarea [% IF page.error_confirmation_text %]error-field[% END %]">
+                [% IF page.error_confirmation_text %]<span class="error">[% page.error_confirmation_text %]</span>[% END %]
+                <textarea name="confirmation_text" rows="3" cols="35">[% values.form.confirmation_text FILTER html %]</textarea>
+            </p>
+            <input type="radio" id="radio2" name="confirmation_method" value="url" [% IF values.form.confirmation_method == 'url' %]checked="checked"[% END %] />
+            <label for="radio2">Redirect to Web Page (e.g. http://www.stanford.edu/thanks.html)</label><br />
+            <p class="text [% IF page.error_confirmation_url %]error-field[% END %]">
+                [% IF page.error_confirmation_url %]<span class="error">[% page.error_confirmation_url %]</span>[% END %]
+                <input type="text" name="confirmation_url" size="45" value="[% values.form.confirmation_url %]" />
+            </p>
+        </fieldset>
+        <hr />
+        <h3>Handling Data</h3>
+        <p>After users submit your form successfully, the data they entered can either be sent to an email address, saved to a database, or both. Choose the method you prefer below, enter an email address (if needed) and save the settings by clicking on the submit button below.</p>
+        <p class="dropdown">
+            <label for="submission_method">Submission Method:</label><br />
+            <select name="submission_method">
+                <option value="both" [% IF values.form.submission_method == 'both' %]selected="selected"[% END %]>Send an email and write to database</option>
+                <option value="email" [% IF values.form.submission_method == 'email' %]selected="selected"[% END %]>Send an email only</option>
+                <option value="database" [% IF values.form.submission_method == 'database' %]selected="selected"[% END %]>Write to database only</option>
+            </select>
+        </p>
+        <p class="email [% IF page.error_submission_email %]error-field[% END %]">
+            [% IF page.error_submission_email %]<span class="error">[% page.error_submission_email %]</span>[% END %]
+            <label for="submission_email">Email Recipient</label><br />
+            <input type="text" id="submission_email" class="email" name="submission_email" size="45" value="[% values.form.submission_email %]" />
+        </p>
+        <p class="email [% IF page.error_submission_email_subject %]error-field[% END %]">
+            [% IF page.error_submission_email_subject %]<span class="error">[% page.error_submission_email_subject %]</span>[% END %]
+            <label for="submission_email_subject">Email Subject</label><br />
+            <input type="text" id="submission_email_subject" class="email" name="submission_email_subject" size="45" value="[% values.form.submission_email_subject %]" />
+        </p>
+        <hr />
+        <h3>Making the form live</h3>
+        <p>To make your form live enter the URL for the form and change the status to Live. The form will not be written to AFS, but the web server will use this information to know when to display your form to users. The directory needs to exist, you must have write access to it and the full URL needs to include a name for your form plus the file extension ".fb".</p>
+        <p class="text [% IF page.error_url %]error-field[% END %]">
+            [% IF page.error_url %]<span class="error">[% page.error_url %]</span>[% END %]
+            <label for="form_url">Form URL (e.g. http://www.stanford.edu/~mrmarco/myform.fb)</label><br />
+            <input type="text" id="form_url" name="url" size="45" value="[% values.form.url %]" />
+        </p>
+        <p class="dropdown">
+            <label for="status">Status</label><br />
+            <select name="is_live">
+                <option value="0" [% IF NOT values.form.is_live %]selected="selected"[% END %]>Not Live</option>
+                <option value="1" [% IF values.form.is_live %]selected="selected"[% END %]>Live</option>
+            </select>
+        </p>
+        <p class="action">
+            <button class="submit" type="submit">Save Publishing Settings</button>
+        </p>
+        <input type="hidden" name="action" value="save_publishing_settings" />
+        <input type="hidden" name="form_id" value="[% form.id %]">
+    </form>
+</div>

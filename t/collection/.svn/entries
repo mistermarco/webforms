@@ -1,0 +1,52 @@
+8
+
+dir
+201
+svn+ssh://mrmarco@vine.stanford.edu/afs/ir/users/m/r/mrmarco/repos/formbuilder/t/collection
+svn+ssh://mrmarco@vine.stanford.edu/afs/ir/users/m/r/mrmarco/repos/formbuilder
+
+
+
+2008-07-31T19:23:16.810030Z
+19
+marco
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+abc04b1f-1e45-4cab-8606-c8b61abd5f7e
+
+name.t
+file
+
+
+
+
+2009-08-29T00:14:35.000000Z
+7d706da7d5a76c2af17f7293b6638092
+2008-07-31T19:23:16.810030Z
+19
+marco
+
+address.t
+file
+
+
+
+
+2009-08-29T00:14:35.000000Z
+ab456645e8b35f02835f8d133ca2b31a
+2008-07-31T19:23:16.810030Z
+19
+marco
+

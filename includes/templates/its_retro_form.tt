@@ -1,0 +1,9 @@
+[% INCLUDE its_retro_form_header.tt %]
+[% IF page.success %]
+<div class="confirmation">
+    [% INCLUDE success.tt %]
+</div>
+[% ELSE %]
+    [% INCLUDE form.tt %]
+[% END %]
+[% INCLUDE its_retro_form_footer.tt %]

@@ -1,0 +1,12 @@
+<div id="container_header">
+  <div id="header">
+    <div id="logo"> <a href="http://www.stanford.edu"><img src="https://www.stanford.edu/dept/its/images/modern/stanford_title.jpg" alt="Stanford University" /></a> </div>
+	<div id="login">
+	<ul>
+	<li>Welcome, [% IF user.name != "" %][% user.name %][% ELSE %][% user.identifier %][% END %]</li>
+	<li><a href="https://www.stanford.edu/dept/its/communications/webservices/wiki/index.php/Stanford_Web_Forms_Service">Help</a></li>
+	<li class="last"><a href="logout.cgi">Logout</a></li>
+	</ul>
+	</div>
+  </div>
+</div>

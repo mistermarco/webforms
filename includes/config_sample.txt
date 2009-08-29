@@ -1,0 +1,12 @@
+language = en_us
+
+[templates]
+path = includes/templates/
+
+[domain]
+name = localhost
+
+[users]
+max_forms = 25
+can_create_new = 1
+can_create_automatically = 1
