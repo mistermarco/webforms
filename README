@@ -17,6 +17,9 @@ REQUIREMENTS
 
 INSTALLATION
 
+Setting up the database
+The software requires admin level access to a MySQL server so that it can create databases to hold individual form data. All data needed to render a form is stored in the fb database. This can be created first and then the tables created using "creates_tables.sql". There's a file called countries.sql under includes/data which will populate the database with 200 countries (useful for a drop down in an address field).
+
 config.txt
 Rename includes/config_sample.txt to config.txt and fill in the appropriate values
 
