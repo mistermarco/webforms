@@ -1,0 +1,27 @@
+Web Forms Service
+(web-based, MySQL-powered form builder and server)
+
+Written by Marco Wise <marco.wise@stanford.edu>
+
+Copyright 2007, 2008, 2009 Board of Trustees, Leland Stanford Jr. University. This software is distributed under a BSD license. Please see the file LICENSE in the distribution for more information.
+
+This software is currently in production at Stanford University.
+
+Please Note: We are working on removing and abstracting some of the Stanford-specific features and creating generic-look templates. Stanford hosts web content in AFS and uses WebAuth for authentication. We haven't throughly tested this software with a more generic setup.
+
+INTRO
+
+DESCRIPTION
+
+REQUIREMENTS
+
+INSTALLATION
+
+You will need to install SpryTabbedPanels.css and SpryTabbedPanels.js from Adobe's Spry Framework under the /SpryAssets directory (Download them here: http://labs.adobe.com/technologies/spry/home.html)
+
+TESTING
+
+CONFIGURATION
+
+THANKS
+
