@@ -55,6 +55,7 @@ sub new {
         _is_deleted          => 0,
         _nodes               => [],
         _added_nodes         => [],
+        _updated_nodes       => [],
         _deleted_nodes       => [],
         _path                => exists $args{path} ? $args{path} : undef,
         _url                 => exists $args{url} ? $args{url} : undef,
@@ -163,6 +164,7 @@ sub new_from_object {
         _total_database_submissions => $object->total_database_submissions,
         _nodes               => [],
         _added_nodes         => [],
+        _updated_nodes       => [],
         _deleted_nodes       => [],
         _creator             => $object->creator,
     };
@@ -691,8 +693,9 @@ sub store {
     # Update the form's submission database
 
     # Are there added or deleted fields?
-    if ($self->added_nodes || $self->deleted_nodes) {
-        
+    if ($self->added_nodes || $self->deleted_nodes || $self->updated_nodes) {
+
+
         # First, grab the database handle we are already using
         my $dbh = FB::DB->db_Main();
 
@@ -708,6 +711,13 @@ sub store {
             foreach my $node ($self->added_nodes) {
                 next unless $node->can_be_submitted;
                 $self->add_node_to_submission_database($node, $dbh);
+            }
+            
+            # Process any updated nodes; these are nodes with added/deleted
+            # elements
+            foreach my $node ($self->updated_nodes) {
+                next unless $node->can_be_submitted;
+                $self->update_node_in_submission_database($node, $dbh);
             }
         }
     }
@@ -790,6 +800,25 @@ sub add_node_to_submission_database {
         }
     }
 }
+sub update_node_in_submission_database {
+    my $self = shift;
+    my $node = shift;
+    my $dbh = shift;
+    
+    my $db_name = "form_" . $self->id;
+
+    if ($node->can_have_elements) {
+        foreach my $sub_element (@{$node->added_elements}) {
+            $self->add_node_to_submission_database($sub_element, $dbh);
+        }
+    }
+    
+    if ($node->can_have_elements) {
+        foreach my $sub_element (@{$node->deleted_elements}) {
+            $self->remove_node_from_submission_database($sub_element, $dbh);
+        }
+    }
+}
 
 sub remove_node_from_submission_database {
     my $self = shift;
@@ -825,6 +854,27 @@ sub remove_node_from_submission_database {
 
 sub added_nodes {
     wantarray ? @{$_[0]->{_added_nodes}} : $_[0]->{_added_nodes};  
+}
+
+##############################################################################
+# Usage       : ????
+# Purpose     : ????
+# Returns     : ????
+# Parameters  : none
+# Throws      : no exceptions
+# Comments    : none
+# See Also    : n/a
+
+# TODO: Error Checking
+
+sub updated_nodes {
+    wantarray ? @{$_[0]->{_updated_nodes}} : $_[0]->{_updated_nodes};  
+}
+
+sub add_to_updated_nodes {
+    my $self = shift;
+    my $node = shift;
+    push (@{$self->{_updated_nodes}}, $node);
 }
 
 ##############################################################################

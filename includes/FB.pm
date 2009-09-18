@@ -1870,18 +1870,22 @@ sub save_field_properties {
             $node->$setter($results->valid($field));
         }
         
+        # keep track of any elements that have changed
+        my $elements_changed = 0;       
+
         if ($node->can_have_elements && !$node->is_custom) {
             my @elements = @{$self->node->elements};
             
-            if ($#elements >= 0) {
+            if ($#elements >= 0) {    
                 foreach my $element (@elements) {
                     
                     # If the element is to be deleted, we do that first
                     # and not worry about any other action on it
                     if ($cgi->param("delete_element_" . $element->id)) {
+                        $elements_changed++;
                         my $element_position = $element->sort_order($node->id);
                         my $removed_element
-                            = $node->remove_element_at($element_position);
+                            = $node->remove_element_at($element_position);                        
                         next;
                     }
                     
@@ -1939,6 +1943,7 @@ sub save_field_properties {
                 }
                 
                 $node->add_element($new_element);
+                $elements_changed++;
             }
 			
 			my $first_element = $node->elements->[0];
@@ -2068,8 +2073,21 @@ sub save_field_properties {
             
         } # end of $node->can_have_items
 
-        # Store the node into the database
-        $node->store;
+
+        
+        if ($elements_changed > 0) {
+            # add this node to the form's list of updated nodes
+            $self->form->add_to_updated_nodes($node);
+            
+            # we store the form so that any new elements can be
+            # added to, and any removed elements can be deleted
+            # from the submission database (if any)
+            $self->form->store();
+        }
+        else {
+            # Store the node into the database
+            $node->store;            
+        }
         
         
         $self->fill_item_values;
@@ -2126,7 +2144,7 @@ sub save_field_properties {
             $self->page->{$_} = $error_messages{$_};
         }
     }
-
+    
 #    $self->page->{'confirmations'}{'edit'}{'header'}
 #        .= "Update Was Successful";
 #    $self->page->{'confirmations'}{'edit'}{'message'}

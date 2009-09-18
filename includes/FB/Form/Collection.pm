@@ -46,6 +46,8 @@ sub new {
         _type     => $class->defaults('type'),
         _template => $args{template} || $class->defaults('template'),
         _name     => $args{name},
+        _added_elements => [],
+        _deleted_elements => [],
 		_elements => [],
         _is_required => 0,
         _is_autofilled => 0,
@@ -59,6 +61,10 @@ sub new {
 # No initialization for the basic collection class
 sub _init {
     return;
+}
+
+sub added_elements {
+    return $_[0]->{_added_elements};
 }
 
 # there is no set_deleted_elements as elements are removed one by one
@@ -94,7 +100,9 @@ sub new_from_object {
         _class       => $object->class,
         _name        => $object->name,
         _type        => $object->type,
-		_elements    => [],
+        _added_elements => [],
+        _deleted_elements => [],
+		    _elements => [],
         # These two need to be moved and incorporated into an appearance model
         _template    => $object->template,
         _is_required    => $object->is_required,
@@ -117,7 +125,7 @@ sub new_from_object {
 
 sub store {
     my $self = shift;
-  
+    
     # does this object have an ID?
     # If yes, update the record
     # If not, create a new record
@@ -295,7 +303,9 @@ sub add_element {
         ||  $self->isa("FB::Form::Collection::CheckBoxGroup")) {
         $element->name($self->name);
     }
-    
+    unless ($element->id) {
+        push (@{$self->{_added_elements}}, $element);
+    }
     push (@{$self->{_elements}}, $element);
 }
 
@@ -309,6 +319,10 @@ sub add_element_at {
     if ( $self->isa("FB::Form::Collection::RadioGroup")
         || $self->isa("FB::Form::Collection::CheckBoxGroup")) {
         $element->name($self->name);
+    }
+    
+    unless ($element->id) {
+        push (@{$self->{_added_elements}}, $element);
     }
     splice(@{$self->{_elements}}, $location, 0, $element);
 }
