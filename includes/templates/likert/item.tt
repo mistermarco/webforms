@@ -1,4 +1,4 @@
-<tr>
+<tr [% IF alternate_class %]class="alternate"[% END %]>
   <td class="question" scope="row">[% element.label %]</td>
   [% FOREACH item = element.items %]
   <td class="[% item.class %]">

@@ -5,13 +5,16 @@
         <span>[% element.label %][% IF element.is_required %] <abbr class="required" title="Required Field">*</abbr>[% END %]</span>
     </legend>
 	<table class="survey">
+	<tr>
 	[% first_element = element.elements.first %]
 	<th></th>
 	[% # we use the items for just the first element to build the table's headings %]
 	[% FOREACH radio = first_element.items %]
 	<th scope="col">[% radio.value %]</th>
 	[%- END %]
+	</tr>
     [% FOREACH element = element.elements %]
+    [% IF loop.index % 2 %][% alternate_class = 1 %][% ELSE %][% alternate_class = 0 %][% END %]
     [% INCLUDE $element.template %]
     [%- END %]
 	</table>
