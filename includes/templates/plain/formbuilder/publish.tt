@@ -52,10 +52,10 @@
         </p>
         <hr />
         <h3>Making the form live</h3>
-        <p>To make your form live enter the URL for the form and change the status to Live. The form will not be written to AFS, but the web server will use this information to know when to display your form to users. The directory needs to exist, you must have write access to it and the full URL needs to include a name for your form plus the file extension ".fb".</p>
+        <p>To make your form live enter the URL for the form and change the status to Live. The form will not be written to the specified directory path, but the web server will use this information to know when to display your form to users. The directory needs to exist, you must have write access to it and the full URL needs to include a name for your form plus the file extension ".fb".</p>
         <p class="text [% IF page.error_url %]error-field[% END %]">
             [% IF page.error_url %]<span class="error">[% page.error_url %]</span>[% END %]
-            <label for="form_url">Form URL (e.g. http://www.stanford.edu/~mrmarco/myform.fb)</label><br />
+            <label for="form_url">Form URL (e.g. http://www.example.com/myform.fb)</label><br />
             <input type="text" id="form_url" name="url" size="45" value="[% values.form.url %]" />
         </p>
         <p class="dropdown">

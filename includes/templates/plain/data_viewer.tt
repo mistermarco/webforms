@@ -3,29 +3,14 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <title>Entries</title>
-<!-- Base stylesheet which imports typography, resets, header/footer layout, and other miscellaneous styles -->
-<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/base2.css" />
-<!-- Page specific stylesheet for middle layout section (sidebars and content_main) -->
-<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary.css" />
-<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary_nocol.css" />
-<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/services/webforms/form_builder.css" />
-<!--[if IE 6]>
-  <style type="text/css">
-    @import url(https://www.stanford.edu/dept/its/css/modern/ie/ie_global.css);
-  </style>
-<![endif]-->
-<!--[if IE 7]>
-  <style type="text/css">
-	@import url(https://www.stanford.edu/dept/its/css/modern/ie/ie7.css);
-  </style>
-<![endif]-->
+<link rel="stylesheet" type="text/css" href="[% INCLUDE path.tt %]css/form_builder.css" />
 </head>
 <body>
     <div class="skip"><a href="#content">Skip to Content</a></div>
     <div id="container">
     [% INCLUDE header.tt %]
     <div id="breadcrumb">
-      <p><a href="http://itservices.stanford.edu/">IT Services</a> &raquo; <a href="http://web.stanford.edu/">Stanford Web Services</a> &raquo; <a href="formbuilder.cgi">Form Management</a> &raquo; Data Viewer for [% form.name %]</p>
+      <p><a href="#">Home</a> &raquo; <a href="formbuilder.cgi">Form Management</a> &raquo; Data Viewer for [% form.name %]</p>
     </div> 
     <div id="title">
         <h1>Entries</h1>

@@ -5,25 +5,10 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <!-- InstanceBeginEditable name="doctitle" -->
 <title>Edit Form</title>
-<!-- Base stylesheet which imports typography, resets, header/footer layout, and other miscellaneous styles -->
-<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/base2.css" />
-<!-- Page specific stylesheet for middle layout section (sidebars and content_main) -->
-<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary.css" />
-<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/modern/tertiary_nocol.css" />
-<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/dept/its/css/services/webforms/form_builder.css" />
-<!--[if IE 6]>
-  <style type="text/css">
-    @import url(https://www.stanford.edu/dept/its/css/modern/ie/ie_global.css);
-  </style>
-<![endif]-->
-<!--[if IE 7]>
-  <style type="text/css">
-	@import url(https://www.stanford.edu/dept/its/css/modern/ie/ie7.css);
-  </style>
-<![endif]-->
-<script src="SpryAssets/SpryTabbedPanels.js" type="text/javascript"></script>
-<link href="SpryAssets/SpryTabbedPanels.css" rel="stylesheet" type="text/css" />
-<style type="text/css">body {behavior:url("https://www.stanford.edu/dept/its/scripts/services/webforms/csshover2.htc");}</style>
+<link rel="stylesheet" type="text/css" href="[% INCLUDE path.tt %]css/form_builder.css" />
+<script src="[% INCLUDE path.tt %]SpryAssets/SpryTabbedPanels.js" type="text/javascript"></script>
+<link href="[% INCLUDE path.tt %]SpryAssets/SpryTabbedPanels.css" rel="stylesheet" type="text/css" />
+<style type="text/css">body {behavior:url("[% INCLUDE path.tt %]scripts/csshover2.htc");}</style>
 <!-- InstanceBeginEditable name="head" --><!-- InstanceEndEditable --><!-- InstanceParam name="body class" type="text" -->
 </head>
 <body>
@@ -38,7 +23,7 @@
 <div id="container">
     [% INCLUDE header.tt %]
     <div id="breadcrumb">
-      <p><a href="http://itservices.stanford.edu/">IT Services</a> &raquo; <a href="http://web.stanford.edu/">University Web Services</a> &raquo; <a href="http://www.stanford.edu/services/webforms/">Web Forms Service</a> &raquo; <a href="formbuilder.cgi">Form Management</a> &raquo; Editing [% form.name %]</p>
+      <p><a href="#">Home</a> &raquo; <a href="formbuilder.cgi">Form Management</a> &raquo; Editing [% form.name %]</p>
     </div> 
     <div id="content_left"><!-- InstanceBeginEditable name="Main Content Left" -->
         [% IF page.notice %]
