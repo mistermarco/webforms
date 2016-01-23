@@ -1,0 +1,3 @@
+        [% IF element.label != '' %]<h2>[% element.label %]</h2>[% END %]
+        [% IF element.value != '' %]<p>[% element.value %]</p>[% END %]
+		[% IF element.value == '' && element.value == '' %]<hr />[% END %]

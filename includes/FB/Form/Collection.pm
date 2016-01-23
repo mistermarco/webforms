@@ -125,11 +125,13 @@ sub new_from_object {
 
 sub store {
     my $self = shift;
-    
+    my $clone = shift;
+    if (!defined($clone)) { $clone = 0; }
+        
     # does this object have an ID?
     # If yes, update the record
     # If not, create a new record
-    if (defined($self->id)) {
+    if ((defined($self->id)) && ($clone == 0)) {
         my $stored_object = FB::DB::Collection->retrieve($self->id);
         $stored_object->set(
             label       => $self->label, 
@@ -148,6 +150,14 @@ sub store {
             my @elements = @{$self->elements};
             
             for (my $i = 0; $i <= $#elements; $i++) {
+
+              # pass the is_required flag to the children
+              if (($self->is_required) && ($elements[$i]->is_required_in_collection)) {
+                $elements[$i]->set_is_required(1);
+			  } else {
+                $elements[$i]->set_is_required(0);
+			  }
+
 
                 # Ask the element to update itself
                 my $element_id = $elements[$i]->store;
@@ -198,12 +208,37 @@ sub store {
         # update/store itself.
         if ($self->elements) {
             my @elements = @{$self->elements};
+
+            # elements share itemsets by default
+            # an itemset is a set of items such as answers to a survey
+            # or options in a drop-down list (not shared in this case)
+            # we find the itemset of the first element and we store it
+            # for future use, should we need to add it to more elements
+            my $new_itemset;
+            if ($elements[0]->can_have_items) {
+                
+                # keep track of the first element's itemset
+                my $itemset = $elements[0]->itemset;
+                
+                # if there is an itemset, store it. If it's to be cloned,
+                # we'll have a new itemset, if not, we'll just get the same one back
+                if ($itemset) {
+                    my $new_itemset_id = $itemset->store($clone);
+                    $new_itemset = FB::Form::Element::Select::ItemSet->new_from_store($new_itemset_id);                    
+                }
+            }
             
             for (my $i = 0; $i <= $#elements; $i++) {
 
+                # if the element supports items and actually has an itemset,
+                # set this as the itemset for all elements
+                if ($elements[$i]->can_have_items && $new_itemset) {
+                    $elements[$i]->set_itemset($new_itemset);                    
+                }
+                
                 # Ask the element to update itself
-                my $element_id = $elements[$i]->store;
-
+                my $element_id = $elements[$i]->store($clone);
+                
                 # Find or create the connection between this collection
                 # and the element.
                 FB::DB::Collection_Element->find_or_create(
@@ -238,7 +273,10 @@ sub remove_from_store {
     # TODO: if we add the elements to the list of fields in the form
     # we need to remove them.
     if ($stored_object) {
-        $stored_object->elements->delete_all();    
+        foreach (@{$self->elements}) {
+            $_->remove_from_store();
+        }
+        #$stored_object->elements->delete_all();  
         $stored_object->delete;        
     }
 }

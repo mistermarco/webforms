@@ -1,0 +1,7 @@
+    [% error_field_name = "error_" _ element.name %]
+    <p class="[% element.class %] [% IF page.errors.$error_field_name %]error-field[% END %]">
+        [% IF page.errors.$error_field_name %]<span class="error">[% page.errors.$error_field_name %]</span>[% END %]
+        <label for="field_[% element.id %]">[% element.label %][% IF element.is_required %] <abbr class="required" title="Required Field">*</abbr>[% END %]</label>
+        <br />
+        <input type="number" id="field_[% element.id %]" class="[% element.class %]" name="[% element.name %]" value="[% CGI.param(element.name) | html %][% element.value | html %]" [% IF element.is_required %]aria-required="true" required[% END %] [% IF page.preview %]readonly="readonly" aria-readonly="true" disabled="disabled"aria-disabled="true"[% END %]/>
+    </p>

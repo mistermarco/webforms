@@ -38,10 +38,6 @@ my $config = AppConfig->new(
         ARGCOUNT => ARGCOUNT_ONE, 
         DEFAULT => 1,
     },
-	'domain_name' => {
-		ARGCOUNT => ARGCOUNT_ONE,
-		DEFAULT => 1,
-	},
 );
 
 $config->file('includes/config.txt');

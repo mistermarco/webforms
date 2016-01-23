@@ -37,12 +37,20 @@ use FB::DB;
   # Some do, like Select and Select1
   sub can_have_items { return 0; }
   
+  # Elements, by default, don't share items
+  sub is_sharing_items { return 0; }
+  
   # Elements, by default, don't contain other elements
   # Some do, however, like collections
   sub can_have_elements { return 0; }
   
   # Is the item custom? By default, it's not
   sub is_custom { return 0; }
+
+  # Is label required? By default, it is
+  sub is_label_required { return 1; }
+
+  sub instructions { return ''; }
 }
 
 sub new {
@@ -236,11 +244,13 @@ sub set_value {
 
 sub store {
     my $self = shift;
+    my $clone = shift;
+    if (!defined($clone)) { $clone = 0; }
   
     # does this object have an ID?
     # If yes, update the record
     # If not, create a new record
-    if (defined($self->id)) {
+    if ((defined($self->id)) && ($clone == 0)) {
         my $stored_object = FB::DB::Element->retrieve($self->id);
         $stored_object->set(
             label    => $self->label,

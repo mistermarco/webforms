@@ -1,0 +1,18 @@
+<!-- Start #header -->
+<div id="header">
+  <div class="container">
+    <div id="logo"><a href="http://www.stanford.edu"><img src="https://www.stanford.edu/su-identity/images/stanford-white@2x.png" alt="Stanford" width="160" height="34"></a></div>
+    <div id="site">
+      <div id="name"><a href="http://formbuilder.stanford.edu"><span>Form Builder</span><span></span></a> </div>
+    </div>
+    <div id="login">
+      <ul>
+        <li>Welcome, [% IF user.name != "" %][% user.name %][% ELSE %][% user.identifier %][% END %]</li>
+        <li><a href="https://itservices.stanford.edu/service/webforms/gettingstarted">Help</a></li>
+        <li class="last"><a href="logout.cgi">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+<!-- End #header --> 
+		

@@ -12,8 +12,8 @@ use CGI ':cgi-lib';
 use utf8;
 use CGI::Carp;
 
-$CGI::POST_MAX=1024 * 512;  # max 512K posts
-$CGI::DISABLE_UPLOADS = 1;  # no uploads
+$CGI::POST_MAX = 1024 * 1024 * 50;  # max 50MB posts
+$CGI::DISABLE_UPLOADS = 0;  # uploads are allowed
 
 use Template;
 use FB::DB;
@@ -22,8 +22,10 @@ use FB::User;
 use FB::Form::Element;
 use FB::Form::Element::Input;
 use FB::Form::Element::Input::Email;
+use FB::Form::Element::Input::UnivID;
 use FB::Form::Element::Input::Phone;
 use FB::Form::Element::Input::URL;
+use FB::Form::Element::Input::File;
 use FB::Form::Element::TextArea;
 use FB::Form::Element::Select;
 use FB::Form::Element::Select::Item;
@@ -47,7 +49,7 @@ use FB::Validation qw(trim is_1_or_0);
 use URI::URL;
 
 use Data::FormValidator;
-use Data::FormValidator::Constraints qw(:closures :regexp_common);
+use Data::FormValidator::Constraints qw(:closures :regexp_common :validators);
 
 
 
@@ -74,6 +76,8 @@ our $Debug = 0;
     'input_email'           => "FB::Form::Element::Input::Email",
     'input_phone'           => "FB::Form::Element::Input::Phone",
     'input_url'             => "FB::Form::Element::Input::URL",
+    'input_file'            => "FB::Form::Element::Input::File",
+    'input_univid'          => "FB::Form::Element::Input::UnivID",
 
     'textarea'              => "FB::Form::Element::TextArea",
   );
@@ -96,9 +100,11 @@ our $Debug = 0;
     'select_services'       => "select.tt",
     'select_likert'         => "likert/item.tt",
     'input'                 => "input_text.tt",
-    'input_email'           => "input_text.tt",
+    'input_email'           => "input_email.tt",
     'input_phone'           => "input_text.tt",
-    'input_url'             => "input_text.tt",
+    'input_url'             => "input_url.tt",
+    'input_file'            => "input_file.tt",
+    'input_univid'          => "input_univid.tt",
     'textarea'              => "textarea.tt",
   );
 
@@ -159,7 +165,6 @@ sub _init {
     $self->{_can_create_new_users} = $config->users_can_create_new || 0;
     $self->{_can_create_new_users_automatically}
         = $config->users_can_create_automatically || 0;
-	$self->{_domain_name} = $config->domain_name;
 }
 
 ##############################################################################
@@ -176,11 +181,6 @@ sub _init {
 sub templates_path {
   my $self = shift;
   return $self->{_templates_path};
-}
-
-sub domain_name {
-	my $self = shift;
-	return $self->{_domain_name};
 }
 
 sub form {
@@ -306,9 +306,18 @@ sub debug {
 sub run {
     my $self = shift;
     my $cgi = $self->cgi;
-    
+   
     my $form_id = $self->cgi->param('form_id');
     my $form;
+
+    if ($cgi->cgi_error() && ($cgi->cgi_error() == '413 Request entity too large')) {
+        $self->display_error(
+            status => $cgi->cgi_error(),
+            user_header => "Form Submission Too Large",
+            user_message => "You've submitted a form, probably with attachments, that was too large for the server. Please try again using smaller file uploads. The current limit in size is " . (($CGI::POST_MAX / 1024) / 1024) . " megabytes.",
+            );
+        exit;
+	}
 
     if (defined $form_id) {
         eval {
@@ -334,6 +343,14 @@ sub run {
         $form->exists(1);
         $self->set_form($form);
     }
+    else {
+        $self->display_error(
+            status => "404 Not Found",
+            user_header => "404 Form Not Found",
+            user_message => "The form you requested does not exist.",
+            );
+        exit;
+	}
     
     if (!$self->form->is_live || $self->form->is_deleted) {
         $self->display_error(
@@ -344,31 +361,150 @@ sub run {
         exit;
     }
 
-    # If the method is POST, we assume the form has been posted and check
-    # whether it's valid.
+    # If the method is POST, we assume the form has been posted.
+	# We need to check if the user could and intended to save the form for
+	# later (in which case we validate but are not strict about required fields)
     if ($self->method eq "POST") {
-        # We build the validation profile for this form.
-        # TODO: Cache this validation profile so that it doesn't have to be
-        # built every time the form is POSTed
-        my $validation_profile = $self->form->validation_profile;
+
+        # check to see if the user wants to save the form in which case it's
+		# not complete
+        my $complete_form = 1;
+        if (defined($cgi->param('save')) && (($cgi->param('save') eq 'save') || ($cgi->param('save') eq 'Save Form')) ) {
+		  $complete_form = 0;
+		}
+
+        # We build the validation profile for this form. We pass whether the
+		# form is complete. In that case, the validation profile will still 
+		# validate fields, but not require any
+        my $validation_profile = $self->form->validation_profile($complete_form);
+
         my $results = Data::FormValidator->check($cgi, $validation_profile);
         
         if ($results->success) {
             
             FB::DB::Form->update_submission_count($self->form->id);
             
-            
             my %values;
             foreach my $field ($results->valid) {
-                $values{$field} = $results->valid($field);
+			    # if the field is an input_file, submit just the name
+				# valid() appears to return the filehandle
+				# this makes the email template choke later on
+				my $value = $results->valid($field);
+				if (defined $value) {
+				  if (eval { $value->isa("Fh") }) {
+				    my @temp_values = $results->valid($field);
+				    $values{$field} = \@temp_values;
+				  }
+				  else {
+                    $values{$field} = $results->valid($field);
+				  }
+			    }
             }
-            
-            # If the form was successfully submitted, we look to what kind of
-            # message we need to send.
-            
-            if (($self->form->submission_method eq "email") ||
-                ($self->form->submission_method eq "both")) {
+
+            my $submission_database_id = '';
+
+            my $dbh = FB::DB->db_Main();
+
+			# when a submission comes in that can be traced to a user, we clear that user's previous incomplete
+			# submissions, whether this submission is complete or not. If we are here, the new submission has
+			# passed validation and will be saved later on, so this is a good place to do this. We also check
+			# to make sure there is a submission database in the first place.
+
+            if (defined($self->cgi->remote_user) && ($self->cgi->remote_user ne '') && $self->form->has_submission_database($dbh)) {
+                my $statement
+                    = "DELETE FROM form_" . $self->form->id . ".submission "
+				    . "WHERE complete = 0 and remote_user = " . $dbh->quote($self->cgi->remote_user)
+                    . ";"
+                ;  
+
+                # Let's try to delete the entries
+                eval {
+                    $dbh->do($statement);
+                };
+
+                if ($@) {
+                    Carp::croak("Could not save submission to the database. $@");
+                    return;
+                }
+            }
+
+            # We save the submission in the database either because we've been asked
+			# to do so by the admin, or because the user has submitted an incomplete
+			# form.
+
+            if (($self->form->submission_method eq "database") ||
+                ($self->form->submission_method eq "both") ||
+				($complete_form != 1)) {
+
+                my @field_names;
+                my @field_values;
                 
+                foreach my $field ($results->valid) {
+                    next unless defined($results->valid($field));
+                    my @values = $results->valid($field);
+                    push (@field_names, $field);
+                    push (@field_values, $dbh->quote(join("\n",@values)));
+                }
+                
+                # Also store the remote_user and the remote_host
+                # TODO: We might allow, in the future, the ability to create
+                # "anonymous" forms, which means these won't get logged
+                push(@field_names, 'remote_user');
+                push(@field_values, $dbh->quote($self->cgi->remote_user));
+                push(@field_names, 'remote_host');
+                push(@field_values, $dbh->quote($self->cgi->remote_host));
+
+				if (!($complete_form)) {
+					push(@field_names, 'complete');
+					push(@field_values, 0);
+				}
+                
+                # TODO: We could prepare a statement that has all fields,
+                # all the time, and that might take advantage of the database
+                # resources...
+                
+                my $statement
+                    = "INSERT INTO form_" . $self->form->id . ".submission "
+                    . "(" . join(",", @field_names) . ")"
+                    . " VALUES "
+                    . "(" . join(",", @field_values) . ")"
+                    . ";"
+                    ;
+                
+                # Let's try to save the data to the database
+                eval {
+                    $dbh->do($statement);
+                };
+                
+                # get the database ID of the last submission
+                $submission_database_id = $dbh->last_insert_id(undef, undef, 'submission', 'submission_id');
+                
+                if ($@) {
+                    # TODO: OK, something went wrong we should:
+                    # let the user know, so they can try again
+                    # log the error
+                    # save the data, so it's not completely lost
+                    Carp::croak("Could not save submission to the database. $@");
+                    return;
+                }
+              
+			    # Update the database submission count, but only if the form is not being
+			    if ($complete_form) {
+                    FB::DB::Form->update_database_submission_count(
+                        $self->form->id
+                    );
+				}
+                
+            }
+
+            # If the form was successfully submitted, we look to what kind of
+            # message we need to send, but make sure not to send a message if
+			# the form submission is incomplete.
+            
+            if ($complete_form
+				&& (($self->form->submission_method eq "email")
+				   || ($self->form->submission_method eq "both"))
+			    ) {
                 my %submission;
                 $submission{'timestamp'} = localtime;
                 $submission{'remote_user'} = $self->cgi->remote_user;
@@ -387,79 +523,141 @@ sub run {
                     \$email_output
                 ) or die $template->error();
                 
-                use Mail::Mailer;
-                my $mailer = Mail::Mailer->new('smtp', Server => 'smtp.stanford.edu'); #$server"sendmail");
-                $mailer->open({
-                        From    => "nobody\@stanford.edu",
-                        To      => $self->form->submission_email,
-                        Subject => $self->form->submission_email_subject,
-                })
-                or Carp::croak "Can't open emailer $!\n";
-                print $mailer $email_output;
-                $mailer->close();
+                my $email_subject = $self->form->submission_email_subject;
+
+                $email_subject =~ s/\%field_(.*?)\%/$values{"field_$1"}/ge;
+                use HTML::Entities;
+                $email_subject = HTML::Entities::encode_entities($email_subject, '<>');
+			   
+                # substitute the database ID in the subject if there is one %ID%
+                $email_subject =~ s/\%ID\%/$submission_database_id/g;
+                # substitute the SUNETID in the subject if there is one %SUNETID%
+                $email_subject =~ s/\%SUNETID\%/$submission{'remote_user'}/g;
+                # substitute the NAME in the subject if there is one %NAME%
+                $email_subject =~ s/\%NAME\%/$ENV{'REDIRECT_WEBAUTH_LDAP_DISPLAYNAME'}/g;
+                my @recipients = map { trim($_) } split(',',$self->form->submission_email);
+
+                use MIME::Lite;
+
+                my $from_address = 'Stanford Web Forms Service <nobody@stanford.edu>';
+
+                if (defined($self->form->submission_email_sender)) {
+                  my $submission_email_sender_id = $self->form->submission_email_sender;
+                  my $submission_email_sender_address = '';
+				  
+				  if (exists($values{'field_' . $submission_email_sender_id})) {
+                    $submission_email_sender_address = $values{'field_' . $submission_email_sender_id};
+                  }
+
+                  # if we have a valid email address, we use it as the from address
+                  if ($submission_email_sender_address ne "") {
+                    $from_address = $submission_email_sender_address;
+                  }
+                }
+
+                my $msg = MIME::Lite->new(
+                    From     => $from_address,
+                    To       => $self->form->submission_email,
+                    Subject  => $email_subject,
+                    Type     => 'multipart/mixed',
+                );
+                $msg->attach(
+                    Type     => 'text/plain; charset=UTF-8',
+                    Data     => $email_output,
+               );
+
+				if (defined($self->form->submission_email_csv) && ($self->form->submission_email_csv == 1)) {
+                   $msg->attach(
+                        Type     => 'text/plain; charset=UTF-8',
+                        Encoding => 'quoted-printable',
+                        Data     => $self->create_submission_csv($submission_database_id,$results),
+                        Filename => 'data.csv',
+                        Disposition => 'attachment',
+                    );
+			    }
+
+
+                # Search for all file inputs and examine them to see if there is a file
+				# TODO: check for size issues
+
+			    my $file_inputs = $self->form->get_file_fields;
+				my @file_inputs = @$file_inputs;
+				foreach my $file_input (@file_inputs) {
+				    my $input_name = $file_input->name();
+				    my $filename   = $self->cgi->param($input_name);
+   		            my $lightweight_fh = $self->cgi->upload($input_name);
+					if (defined($lightweight_fh)) {
+				        my $filehandle = $lightweight_fh->handle; 
+                        $msg->attach(
+                            Type     => 'AUTO',
+                            FH       => $filehandle,
+                            Filename => $filename,
+                            Disposition => 'attachment',
+                        );
+					}
+			    }
+
+                $msg->send('smtp', 'localhost');
+            }
+           
+		    # if the form is complete, there is an email field on the form, and
+			# the field has been set as the confirmation email field, we send
+			# a receipt to it
+
+            if ($complete_form && defined($self->form->confirmation_email) && ($self->form->confirmation_email ne "")) {
+
+                my $email_field_id = $self->form->confirmation_email;
+                my $receipt_email_address = '';
+				
+				if (exists($values{'field_' . $email_field_id})) {
+                  $receipt_email_address = $values{'field_' . $email_field_id};
+                }
+
+                # if we have an email address, we send out the confirmation
+                if ($receipt_email_address ne "") {
+                    my %submission;
+                    $submission{'timestamp'} = localtime;
+                    $submission{'remote_user'} = $self->cgi->remote_user;
+                    $submission{'remote_host'} = $self->cgi->remote_host;
+
+                    my $email_output = "";
+                    my $template = Template->new({
+                        INCLUDE_PATH => $self->templates_path
+                    });
+
+                    $template->process(
+                        'email/main.tt',
+                        { submission => \%submission,
+                          values => \%values,
+                          form => $self->form },
+                        \$email_output
+                    ) or die $template->error();
+
+                    my $email_subject = $self->form->name;
+
+                    my $msg = MIME::Lite->new(
+                        From     => 'Stanford Web Forms Service <nobody@stanford.edu>',
+                        To       => $receipt_email_address,
+                        Subject  => "Receipt from: " . $email_subject,
+                        Type     => 'multipart/mixed',
+                    );
+
+                    $msg->attach(
+                        Type     => 'text/plain; charset=UTF-8',
+                        Data     => $email_output,
+                    );
+
+                    $msg->send('smtp', 'localhost');
+                }
             }
 
-            if (($self->form->submission_method eq "database") ||
-                ($self->form->submission_method eq "both")) {
-                # First, we check if there is a submission database
-                # If there isn't we should probably fail
-                my $dbh = FB::DB->db_Main();
-                 
-                my @field_names;
-                my @field_values;
-                
-                foreach my $field ($results->valid) {
-                    next unless defined($results->valid($field));
-                    my @values = $results->valid($field);
-                    push (@field_names, $field);
-                    push (@field_values, $dbh->quote(join("\n",@values)));
-                }
-                
-                # Also store the remote_user and the remote_host
-                # TODO: We might allow, in the future, the ability to create
-                # "anonymous" forms, which means these won't get logged
-                push(@field_names, 'remote_user');
-                push(@field_values, $dbh->quote($self->cgi->remote_user));
-                push(@field_names, 'remote_host');
-                push(@field_values, $dbh->quote($self->cgi->remote_host));
-                
-                # TODO: We could prepare a statement that has all fields,
-                # all the time, and that might take advantage of the database
-                # resources...
-                
-                my $statement
-                    = "INSERT INTO form_" . $self->form->id . ".submission "
-                    . "(" . join(",", @field_names) . ")"
-                    . " VALUES "
-                    . "(" . join(",", @field_values) . ")"
-                    . ";"
-                    ;
-                
-                # Let's try to save the data to the database
-                eval {
-                    $dbh->do($statement);
-                };
-                if ($@) {
-                    # TODO: OK, something went wrong we should:
-                    # let the user know, so they can try again
-                    # log the error
-                    # save the data, so it's not completely lost
-                    Carp::croak("Could not save submission to the database. $@");
-                    return;
-                }
-                
-                FB::DB::Form->update_database_submission_count(
-                    $self->form->id
-                );
-                
-            }
 
             # After we've saved the data, or emailed it, we need to return
             # a message to the person who submitted the form. Here we choose
             # whether to send them a confirmation message or redirect them
-            # to a different page
+            # to a different page, but only if the form is complete
             
-            if ($self->form->confirmation_method eq "text") {
+            if ($complete_form && ($self->form->confirmation_method eq "text")) {
                 $self->page->{'success'}{'message'}
                     = $self->form->confirmation_text;
                 print $self->cgi->header;
@@ -467,8 +665,16 @@ sub run {
                 exit;
             }
             
-            if ($self->form->confirmation_method eq "url") {
+            if ($complete_form && ($self->form->confirmation_method eq "url")) {
                 print $self->cgi->redirect($self->form->confirmation_url);
+                exit;
+            }
+
+			if (!($complete_form)) {
+                $self->page->{'success'}{'message'}
+                    = 'Your form entries have been saved. You can continue filling out this form anytime by returning to this URL: <a href="' .  $self->form->url . '">' . $self->form->url . '</a>';
+                print $self->cgi->header;
+                $self->form->render($self->page);
                 exit;
             }
         }
@@ -489,11 +695,76 @@ sub run {
             foreach my $field ($results->missing) {
                 $self->values->{'form'}{$field} = $submitted_values{$field};
             }
-            
+
+            my $number_of_invalid_fields = 0;
+            my $number_of_missing_fields = 0;
+            my $number_of_errors         = 0;
+		   
+		    if ($results->has_missing) {
+              $number_of_missing_fields = scalar @{$results->missing};
+		    }
+
+            if ($results->has_invalid) {
+		      $number_of_invalid_fields = scalar %{$results->invalid}; 
+		    }
+
+		    $number_of_errors = $number_of_invalid_fields + $number_of_missing_fields;
+
             # Create the error message
             $self->page->{'errors'}{'main'}{'header'} .= "Error";
-            $self->page->{'errors'}{'main'}{'message'}
-                .= "There were some errors.<br />Please see below.";
+			if ($number_of_errors == 1) {
+              $self->page->{'errors'}{'main'}{'message'} = "There is one error in the form you submitted. It was:";
+			} else {
+              $self->page->{'errors'}{'main'}{'message'} = "There are $number_of_errors errors in the form you submitted. They were:";
+            }
+
+            # We start a list of links to the fields that are either missing or invalid
+            $self->page->{'errors'}{'main'}{'message'} .= '<ol>';
+
+            # Create lookup hash
+			my %missing_fields = map { $_ => 1 } @{$results->missing};
+
+            # Loop through the nodes in each form and find the DOM ID of the first item
+			# that is missing or invalid
+            foreach ($self->form->nodes) {
+			  my $id = '';
+
+              if (($_->type eq 'select_checkbox') || ($_->type eq 'select_radio')) {
+                if (defined $_->items->[0]) {
+                  $id = $_->items->[0]->id;
+                }
+			  }
+			  elsif ($_->type eq 'select') {
+			    $id = $_->id;
+			  }
+			  elsif ($_->type eq 'collection_likert') {
+				foreach my $element ($_->elements) {
+			      $id = 'item_' . $element->id . '_' . $element->items->[0]->id;
+                  last unless defined($results->valid('field_' . $element->id));
+				}
+			  }
+			  elsif (($_->type eq 'collection_name') || ($_->type eq 'collection_address')) {
+				foreach my $element ($_->elements) {
+			      $id = 'field_' . $element->id;
+				  next unless $element->is_required_in_collection;
+                  last unless defined($results->valid($id));
+				}
+			  }
+			  else {
+			    $id = $_->name;
+			  }
+
+              if (exists($missing_fields{$_->name})) {
+                $self->page->{'errors'}{'main'}{'message'} .= '<li><a id="link_to_' . $id . '" href="#' . $id . '">A required field was left empty.</a></li>';
+                $self->page->{'js'}{'main'} .= '$("#link_to_' . $id . '").on( "click", function ( event ) { event.preventDefault(); $("#' . $id . '").focus(); });' . "\n";
+			  }
+			  if (exists($results->invalid->{$_->name})) {
+                $self->page->{'errors'}{'main'}{'message'} .= '<li><a id="link_to_' . $id . '" href="#' . $id . '">A field was incorrectly filled out. (' . $results->msgs->{'error_' . $_->name} . ')</a></li>';
+                $self->page->{'js'}{'main'} .= '$("#link_to_' . $id . '").on( "click", function ( event ) { event.preventDefault(); $("#' . $id . '").focus(); });' . "\n";
+			  }
+			}
+
+            $self->page->{'errors'}{'main'}{'message'} .= '</ol>';
 
             # Pass the individual error messages (e.g. this is missing,
             # that is invalid) to the template. The actual messages are stored
@@ -512,45 +783,107 @@ sub run {
     if ($self->method eq "GET") {
         print $self->cgi->header;
 
-        # are we behind WebAuth?
-        foreach my $node ($form->nodes) {
-            if (defined($node->is_autofilled) && ($node->is_autofilled)) {
-                if ($node->type eq "input_email") {
-                    $node->set_value($ENV{'REDIRECT_WEBAUTH_LDAP_MAIL'});
+        if ((defined($self->cgi->remote_user()))
+            && ($self->cgi->remote_user() ne '')
+           ) {
+            # if we are here, the form is behind webauth
+
+            # if we are here, the form cannot be continued, or it's not behind
+            # webauth
+
+            # loop through the nodes and see if any need to be auto-filled
+            # if they do, see which kind they are and try to find the appropriate
+            # value in environment variables - set by WebAuth
+            foreach my $node ($form->nodes) {
+                if (defined($node->is_autofilled) && ($node->is_autofilled)) {
+                    if ($node->type eq "input_email") {
+                        $node->set_value($ENV{'REDIRECT_WEBAUTH_LDAP_MAIL'});
+                    }
+
+                    if ($node->type eq "input_univid") {
+                        $node->set_value($ENV{'REDIRECT_WEBAUTH_LDAP_SUUNIVID'});
+                    }
+
+                    if ($node->type eq "collection_name") {
+                        my @elements = $node->elements;
+                        my @names = split(" ",$ENV{'REDIRECT_WEBAUTH_LDAP_DISPLAYNAME'});
+                        my $last_name  = $names[$#names];
+                        my $first_name = $names[0];
+                        $elements[0]->set_value(trim($first_name));
+                        $elements[1]->set_value(trim($last_name));
+                    }
                 }
-
-                if ($node->type eq "collection_name") {
-#                    use Stanford::Directory;
-#                   my $DIR = new Stanford::Directory;
-#                    $DIR->set (ldap_server    => "ldap.stanford.edu",
-#                               mechanism      =>  "GSSAPI",
-#                               basedn         => "cn=people, dc=stanford, dc=edu");
-
-#                    my $sunetid = $ENV{'WEBAUTH_USER'};
-#                    my @entries = $DIR->ldap_query("(uid=$sunetid)");
-
-#                    my %userinfo;
-#                    my $user;
-
-#                    foreach my $entry (@entries) {
-#                        $user = $entry;
-#                        foreach my $attr (keys (%{$entry})) {
-#                            push @{$userinfo{$attr}}, @{$entry->{$attr}};
-#                        }
-#                    }
-
-                    my @elements = $node->elements;
-#                    my ($last, $first) = split(",",$userinfo{'sudisplaynamelf'}[0]);
-                    my @names = split(" ",$ENV{'REDIRECT_WEBAUTH_LDAP_DISPLAYNAME'});
-                    my $last_name  = $names[$#names];
-                    my $first_name = $names[0];
-                    $elements[0]->set_value(trim($first_name));
-                    $elements[1]->set_value(trim($last_name));
-                }
-            } 
+            }
         }
 
-        $self->form->render;
+		# can the form be continued at a later time?
+		# do we have a username or identifier?
+
+		if (($self->form->can_be_continued() == 1)
+            && (defined($self->cgi->remote_user()))
+            && ($self->cgi->remote_user() ne '')
+           ) {
+   
+            # we need the database handle to check if the submission
+            # database exists
+  
+            my $dbh = FB::DB->db_Main();
+		    if (defined($self->form->has_submission_database($dbh))) {
+		        my $identifier = $self->cgi->remote_user();
+
+		        # if there is a submission database, is there an incomplete
+                # submission for this user?
+
+                # first, let's find the various field names we care about
+                my @field_names  = qw/submission_id remote_user/;
+
+                foreach my $node ($self->form->nodes) {
+                    next unless $node->can_be_submitted;
+                    if ($node->can_have_elements) {
+                        foreach my $element ($node->elements) {
+                            push (@field_names,  $element->name);
+                        }
+                    }
+                    else {
+                        push (@field_names,  $node->name);
+                    }
+                }
+
+                my $statement
+                    = "SELECT "
+                    . join(',', @field_names)
+                    . " FROM "
+                    . "form_" . $form->id . ".submission"
+                    . " where complete = 0 and remote_user = " . $dbh->quote($identifier)
+                    . " ORDER BY submission_id DESC;"
+                    ;
+
+                my $data_ref = $dbh->selectrow_hashref($statement);
+
+                if (defined($data_ref)) {
+                    foreach my $node ($self->form->nodes) {
+                        next unless $node->can_be_submitted;
+                        if ($node->can_have_elements) {
+                            foreach my $element ($node->elements) {
+                                $element->set_value($data_ref->{$element->name});
+                            }
+                        }
+                        else {
+                            $node->set_value($data_ref->{$node->name});
+                        }
+                    }
+
+                    # if there is a submission, let the user know
+
+                    $self->page->{'confirm'}{'main'}{'header'} .= "Welcome Back!";
+                    $self->page->{'confirm'}{'main'}{'message'}
+                        .= "The entries you have saved previously have been reloaded below. You can continue filling out the form and then either save it again, or submit it if you are finished.";
+
+                }
+            }
+        }
+
+        $self->form->render($self->page);
 
         # TODO: decide if you want to keep this format for debugging
         $Debug && warn Dumper $self->form;
@@ -684,14 +1017,15 @@ sub build {
     my %allowed_actions = (
         create_new_form             => 1,
         confirm_delete_form         => 1,
+        copy_form                   => 1,
         edit_form                   => 1,
-        duplicate_form              => 1,
         delete_form                 => 1,
         add_form_by_url             => 1,
         add_node                    => 1,
         move_node_down              => 1,
         move_node_up                => 1,
         edit_node                   => 1,
+        confirm_delete_node         => 1,
         delete_node                 => 1,
         edit_form_properties        => 1,
         save_form_properties        => 1,
@@ -702,6 +1036,9 @@ sub build {
         delete_entries_confirm      => 1,
         export_entries_as_excel     => 1,
         export_entries_as_csv       => 1,
+		remove_admin                => 1,
+		add_admin                   => 1,
+		sort_nodes                  => 1,
     );
     
     # Let's see what action the user wants to perform
@@ -724,6 +1061,7 @@ sub build {
         BUILD_TAB   => 0,
         EDIT_TAB    => 1,
         PUBLISH_TAB => 2,
+        MANAGE_TAB  => 3,
     };
     
     # By default, we start on the build tab. This can be changed
@@ -738,6 +1076,7 @@ sub build {
     if ($action eq "create_new_form") {
         $self->create_new_form();
         $self->fill_publishing_settings;
+        $self->fill_manage_settings;
     }
     else {
         my $form_id = $self->cgi->param('form_id');
@@ -770,12 +1109,121 @@ sub build {
         }
         
         $self->fill_publishing_settings unless ($action eq "view_entries") || ($action eq "export_entries_as_excel");
+        $self->fill_manage_settings unless ($action eq "view_entries") || ($action eq "export_entries_as_excel");
         
         $self->$action;
     }
 
     # We now display the form building interface
     $self->edit_form();
+}
+
+sub add_admin {
+  my $self = shift;
+  my $form = $self->form;
+  my $current_user = $self->user;
+
+  my $form_id = $form->id;
+  my $identifier = $self->cgi->param('new_admin');
+
+  # Has an identifier been provided?
+  unless ((defined $identifier) && ($identifier ne '')) {
+    $self->page->{'errors'}{'manage'}{'header'}  .= "Error";
+    $self->page->{'errors'}{'manage'}{'message'} .= "Please enter the primary SUNetID for the new admin.";
+    $self->page->{'tab_number'} = MANAGE_TAB;
+    return;
+  }
+
+  my $new_admin = FB::User->new_from_store($identifier);
+
+  # Is there a user account with the provided identifier?
+  unless (defined $new_admin) {
+    $self->page->{'errors'}{'manage'}{'header'}  .= "Error";
+    $self->page->{'errors'}{'manage'}{'message'} .= "There is no account for SUNetID <em>" . $identifier . "</em>.<br />Please ask the new admin to visit https://formbuilder.stanford.edu. This will create a new account for them automatically. Once that is done, you will be able to add them as an admin to this form.";
+    $self->page->{'tab_number'} = MANAGE_TAB;
+    return;
+  }
+
+  # Is the user already an admin for this form?
+  if ($new_admin->can_edit($form)) {
+    $self->page->{'errors'}{'manage'}{'header'}  .= "Error";
+    $self->page->{'errors'}{'manage'}{'message'} .= "The user is already an admin for this form.<br />(ID: $identifier)";
+    $self->page->{'tab_number'} = MANAGE_TAB;
+	return;
+  }
+
+  $self->page->{'confirmations'}{'manage'}{'header'}  .= "Success";
+  $self->page->{'confirmations'}{'manage'}{'message'} .= $new_admin->name . " (" . $new_admin->identifier . ") was added as an admin for this form.";
+  $self->page->{'tab_number'} = MANAGE_TAB;
+
+  $new_admin->add_form($form, 'admin');
+
+  # reload the form so the changes are available
+  $self->set_form(FB::Form->new_from_store($form_id));
+
+  # fill out the template's values
+  $self->fill_manage_settings;
+}
+
+sub remove_admin {
+  my $self = shift;
+  my $form = $self->form;
+  my $current_user = $self->user;
+
+  my $form_id = $form->id;
+  my $user_id = $self->cgi->param('user_id');
+  my $removed_user = FB::User->new_from_store_by_id($user_id);
+
+  # Is there a user account with the provided ID?
+  unless (defined $removed_user) {
+    $self->page->{'errors'}{'manage'}{'header'}  .= "Error";
+    $self->page->{'errors'}{'manage'}{'message'} .= "The user could not be removed.<br />Account does not exist. (ID: $user_id)";
+    $self->page->{'tab_number'} = MANAGE_TAB;
+	return;
+  }
+
+  # Is the user an admin for this form?
+  unless ($removed_user->can_edit($form)) {
+    $self->page->{'errors'}{'manage'}{'header'}  .= "Error";
+    $self->page->{'errors'}{'manage'}{'message'} .= "The user is not an admin for this form.<br />(ID: $user_id)";
+    $self->page->{'tab_number'} = MANAGE_TAB;
+	return;
+  }
+
+  # is the user the creator of the form?
+  if ($removed_user->identifier eq $form->creator) {
+    $self->page->{'errors'}{'manage'}{'header'}  .= "Error";
+    $self->page->{'errors'}{'manage'}{'message'} .= "The user is the creator for the form and cannot be removed.<br />(ID: $user_id)";
+    $self->page->{'tab_number'} = MANAGE_TAB;
+	return;
+  }
+
+  # TODO: Remove user
+  $removed_user->remove_from_admin($form);
+
+  # reload the form so the changes are available
+  $self->set_form(FB::Form->new_from_store($form_id));
+
+  # fill out the template's values
+  $self->fill_manage_settings;
+
+
+  # TODO: if user removed himself/herself, this needs to go to the management screen
+  if ($user_id == $current_user->id) {
+    $self->page->{'message'} .= "You've removed yourself as an admin from the form <em>" . $form->name . "</em>";
+    $self->page->{'tab_number'} = MANAGE_TAB;
+
+	# remove the form from the current user's forms, so it doesn't appear in the listing of forms
+	# on the management screen
+    $current_user->remove_form($form);
+
+	$self->manage();
+  }
+  else {
+    $self->page->{'confirmations'}{'manage'}{'header'}  .= "Success";
+    $self->page->{'confirmations'}{'manage'}{'message'} .= $removed_user->name . " is no longer an admin for this form.";
+    $self->page->{'tab_number'} = MANAGE_TAB;
+  }
 }
 
 ##############################################################################
@@ -802,9 +1250,9 @@ sub view_entries {
             .= "The form you selected is not saving data to a database.";
         $self->manage();
     }
-    
-    my @field_labels = ("id", "Submitted By", "Date Submitted");
-    my @field_names  = qw/submission_id remote_user date_submitted/;
+  
+    my @field_labels = ("id", "Submitted By", "IP Address", "Date Submitted");
+    my @field_names  = qw/submission_id remote_user remote_host date_submitted/;
     
     foreach my $node ($form->nodes) {
         next unless $node->can_be_submitted;
@@ -825,6 +1273,7 @@ sub view_entries {
          . join(',', @field_names) 
          . " FROM "
          . "form_" . $form->id . ".submission"
+         . " where complete = 1"
          . " ORDER BY submission_id DESC;"
          ;
     my $data_ref = $dbh->selectall_arrayref($statement);
@@ -957,7 +1406,7 @@ sub delete_entries {
     }
 
     my ($total_database_submissions)
-		= $dbh->selectrow_array('select count(1) from form_' . $self->form->id . '.submission ');
+		= $dbh->selectrow_array('select count(1) from form_' . $self->form->id . '.submission where complete = 1');
 
 	FB::DB::Form->set_database_submission_count($self->form->id, $total_database_submissions);
 	
@@ -971,6 +1420,92 @@ sub delete_entries {
     $self->view_entries;
 }
 
+##############################################################################
+# Usage       : ????
+# Purpose     : Creates a CSV of the current submission so it can be attached
+#               to the email that goes to the admin
+# Returns     : ????
+# Parameters  : none
+# Throws      : no exceptions
+# Comments    : none
+# See Also    : n/a
+
+# TODO: Error Checking
+# TODO: Testing Code
+
+sub create_submission_csv {
+    my $self = shift;
+    my $database_id = shift;
+    my $results = shift;
+    my $form = $self->form;
+
+    use Text::CSV;
+    my $csv = Text::CSV->new({binary => 1});
+    
+    # We need to use id in lowercase rather than ID because of Excel's bug
+    # Excel interprets any text file starting with ID as a SYLK file and
+    # fails if someone tries to open a CSV file into Excel
+    # http://support.microsoft.com/kb/323626
+    my @field_labels = ("id", "Submitted By", "IP Address", "Date Submitted");
+    my @field_names;
+
+    foreach my $node ($form->nodes) {
+        next unless $node->can_be_submitted;
+        if ($node->can_have_elements) {
+            foreach my $element ($node->elements) {
+                push (@field_labels, $node->label . ":" . $element->label);
+                push (@field_names,  $element->name);
+            }
+        }
+        else {
+            push (@field_labels, $node->label);
+            push (@field_names,  $node->name);
+        }
+    }
+
+    my $filename = "form_" . $form->id . "_data.csv";
+
+    my $csv_text = '';
+    
+    # print headers
+    $csv->combine(@field_labels);
+    $csv_text = $csv->string . "\n";
+
+    my @field_values;
+
+    push(@field_values, $database_id);
+    push(@field_values, $self->cgi->remote_user);
+    push(@field_values, $self->cgi->remote_host);
+    use DateTime;
+    my $now = DateTime->now;
+    $now->set_time_zone( 'America/Los_Angeles' );
+
+    my $timestamp = $now->ymd('-') . ' ' . $now->hms(':');
+    
+    push(@field_values, $timestamp);
+    
+    my %values;
+    foreach my $field ($results->valid) {
+        next unless defined($results->valid($field));
+        my @values = $results->valid($field);
+        $values{$field} = join("\n",@values);
+    }
+ 
+    foreach my $field_name (@field_names) {
+        if (defined($values{$field_name})) {
+            push(@field_values, $values{$field_name});            
+        }
+        else {
+            push(@field_values, '');            
+        }
+    }
+
+    $csv->combine(@field_values);
+    $csv_text .= $csv->string . "\n";
+    
+    return $csv_text;
+    
+}
 
 ##############################################################################
 # Usage       : ????
@@ -1005,8 +1540,8 @@ sub export_entries_as_csv {
     # Excel interprets any text file starting with ID as a SYLK file and
     # fails if someone tries to open a CSV file into Excel
     # http://support.microsoft.com/kb/323626
-    my @field_labels = ("id", "Submitted By", "Date Submitted");
-    my @field_names  = qw/submission_id remote_user date_submitted/;
+    my @field_labels = ("id", "Submitted By", "IP Address", "Date Submitted");
+    my @field_names  = qw/submission_id remote_user remote_host date_submitted/;
     
     foreach my $node ($form->nodes) {
         next unless $node->can_be_submitted;
@@ -1022,7 +1557,7 @@ sub export_entries_as_csv {
         }
     }
 
-    my $filename = "data.csv";
+    my $filename = "form_" . $form->id . "_data.csv";
     
     print "Content-type: text/csv\n";
     # The Content-Disposition will generate a prompt to save the file. If you want
@@ -1039,6 +1574,7 @@ sub export_entries_as_csv {
          . join(',', @field_names) 
          . " FROM "
          . "form_" . $form->id . ".submission"
+         . " WHERE complete = 1"
          . " ORDER BY submission_id DESC;"
          ;
          
@@ -1081,8 +1617,8 @@ sub export_entries_as_excel {
         $self->manage();
     }
     
-    my @field_labels = ("ID", "Submitted By", "Date Submitted");
-    my @field_names  = qw/submission_id remote_user date_submitted/;
+    my @field_labels = ("ID", "Submitted By", "IP Address", "Date Submitted");
+    my @field_names  = qw/submission_id remote_user remote_host date_submitted/;
     
     foreach my $node ($form->nodes) {
         next unless $node->can_be_submitted;
@@ -1098,7 +1634,7 @@ sub export_entries_as_excel {
         }
     }
 
-    my $filename = "data.xls";
+    my $filename = "form_" . $form->id . "_data.xls";
 
     print "Content-type: application/vnd.ms-excel\n";
     # The Content-Disposition will generate a prompt to save the file. If you want
@@ -1132,6 +1668,7 @@ sub export_entries_as_excel {
          . join(',', @field_names) 
          . " FROM "
          . "form_" . $form->id . ".submission"
+         . " WHERE complete = 1"
          . " ORDER BY submission_id DESC;"
          ;
          
@@ -1195,6 +1732,9 @@ sub edit_form {
             }
         }
     }
+
+    # set a flag to let the template know this is a preview
+	$self->page->{'preview'} = 1;
             
     my $template = Template->new({
         INCLUDE_PATH => $self->templates_path
@@ -1218,7 +1758,7 @@ sub edit_form {
 }
 
 ##############################################################################
-# Usage       : $fb->duplicate_form
+# Usage       : $fb->copy_form
 # Purpose     : Duplicates an existing form
 # Returns     : ????
 # Parameters  : none
@@ -1228,13 +1768,53 @@ sub edit_form {
 
 # TODO: Error Checking
 
-sub duplicate_form {
-  my $self = shift;
-  my $form = $self->form;
-  print $self->cgi->header;
-  use Data::Dumper;
-  print Dumper $form;
-  exit;
+sub copy_form {
+    my $self = shift;
+    my $form = $self->form;
+    my $user = $self->user;
+    
+    # Retrieve the maximum number of forms for this user
+    my $max_forms = $user->max_forms;
+
+    # Retrieve the number of forms this user created
+    my $total_forms = scalar @{$user->forms};
+
+    if ($total_forms >= $max_forms) {
+        $self->page->{'message'}
+            = "You've already reached the maximum number "
+            . "of forms.";
+        $self->manage();
+    }
+        
+    # store the previous ID for later use.
+    my $form_id = $form->id();
+
+    # setting the ID to undefined will make the store function insert it
+    # instead of updating the previous form
+    undef $form->{_id};
+    
+    # set the path to undefined
+    undef $form->{_path};
+    
+    # set the name to the name plus (copy)
+    $form->set_name($form->name() . " (copy)");
+    
+    # set the form to be non-live
+    $form->set_is_live(0);
+    
+    # set the URL to undefined
+    $form->set_url('');
+    
+    # resetting the submission totals is done at save time
+    
+    # set the creator to the current user
+    $form->set_creator($user->identifier());
+    
+    $form->store(1);
+    $user->add_form($form, 'creator');
+
+    $self->page->{'message'} = "Success! The form has been duplicated.";
+    $self->manage;
 }
 
 ##############################################################################
@@ -1382,6 +1962,28 @@ sub move_node_up {
     $self->form->store();
 }
 
+sub sort_nodes {
+  my $self = shift;
+  my @nodes = @{$self->form->nodes};
+  my %node_locations;
+  foreach my $node (@nodes) {
+    $node_locations{$node->id} = $self->cgi->param('number_sort_' . $node->id);
+  }
+
+  my @sorted_node_ids = ();
+  my @node_ids = map { $_->id } @nodes;
+  @sorted_node_ids = sort { $node_locations{$a} <=> $node_locations{$b} } @node_ids;
+  $self->form->sort_nodes(\@sorted_node_ids);
+  $self->form->store();
+
+  # Return the user to the build tab since there is nothing to edit
+  $self->page->{'tab_number'} = BUILD_TAB;
+  $self->page->{'confirmations'}{'build'}{'header'}
+      = "Update Was Successful";
+  $self->page->{'confirmations'}{'build'}{'message'}
+      = "The new field order has been saved.";
+}
+
 
 ##############################################################################
 # Usage       : $self->move_node_down
@@ -1405,6 +2007,43 @@ sub move_node_down {
 }
 
 ##############################################################################
+# Usage       : $fb->confirm_delete_node
+# Purpose     : Prints the delete node confirmation page
+# Returns     : ????
+# Parameters  : none
+# Throws      : no exceptions
+# Comments    : none
+# See Also    : n/a
+
+# TODO: Error Checking
+
+sub confirm_delete_node {
+    my $self = shift;
+    my $user = $self->user;
+    my $form = $self->form;
+    my $node_id = $self->cgi->param('node_id');
+    my $node_position = $self->form->get_node_position_by_id($node_id);
+    my $node = $self->form->get_node_at($node_position);
+
+    # in Stanford's case, the identifier is the SUNET_ID
+    # find the user with this SUNET_ID        
+    my $html_output = "";
+    my $template = Template->new({
+        INCLUDE_PATH => $self->templates_path
+    });
+
+    $template->process(
+        'confirm_delete_node.tt',
+        { user => $user, page => $self->page, form => $form, node => $node },
+        \$html_output
+    ) or die $template->error();
+
+    print $self->cgi->header;
+    print $html_output;
+    exit;
+}
+
+##############################################################################
 # Usage       : $self->delete_node
 # Purpose     : Delete a node from a list by calling the form's own function
 #               and passing it the value we got from the user
@@ -1420,8 +2059,8 @@ sub move_node_down {
 sub delete_node {
     my $self = shift;
     
-    my $node_position = $self->cgi->param('node_position');
     my $node_id       = $self->cgi->param('node_id');
+    my $node_position = $self->form->get_node_position_by_id($node_id);
     
     $self->form->remove_node_at($node_position, $node_id);
     
@@ -1452,7 +2091,8 @@ sub delete_node {
 
 sub edit_node {
     my $self = shift;
-    my $node_position = $self->cgi->param('node_position');
+    my $node_id = $self->cgi->param('node_id');
+    my $node_position = $self->form->get_node_position_by_id($node_id);
     $self->set_node($self->form->get_node_at($node_position));
     $self->page->{'node_position'} = $node_position;
     $self->page->{'tab_number'} = EDIT_TAB;
@@ -1482,6 +2122,25 @@ sub add_node {
 
     # Add the node to the form
     my $node_position = $self->form->add_node($class->new());
+
+    # if the form is live, and a file upload field was just added
+	# check to see if the form is set to save only to the database
+	# if yes, change the submission method to both email and database
+	# of file attachments will be lost
+	
+	if (($node_type eq 'input_file') && ($self->form->is_live) && ($self->form->submission_method eq 'database')) {
+      # set the submission methoed to both email and database
+	  $self->form->set_submission_method('both');
+	  # update the template values so the change is reflected on page load
+	  $self->values->{'form'}{'submission_method'} = 'both';
+
+      if (trim($self->form->submission_email) eq "") {
+        # set the submission email to the current user's email
+	    $self->form->set_submission_email($self->user->email);
+	    # update the template values so the change is reflected on page load
+	    $self->values->{'form'}{'submission_email'} = $self->user->email;
+	  }
+	}
    
     # Keep track of which node we are working on
     $self->set_node($self->form->get_node_at($node_position));
@@ -1718,8 +2377,18 @@ sub save_field_properties {
     my @field_properties = qw/label/;
     my @item_fields = qw/new_item_value/;
     my @element_fields = qw/new_element_value/;
-    my @required_fields = qw/label/;
+    my @required_fields;
     my @optional_fields;
+
+    # If the label is required, we add it to the required fields.
+    # If not, we add it to the optional ones.
+    if ($node->is_label_required) {
+        @required_fields = qw/label/;
+    }
+    else {
+        @optional_fields = qw/label/;
+    }
+
     my %require_some;
     my %constraint_methods;
     my %defaults;
@@ -2219,7 +2888,7 @@ sub add_form_by_url {
             constraints => {
                 'FV_URI_HTTP' => 'Not a valid URL format.',
                 'dfv_form_name_check' => 'The form name is not valid.',
-                'dfv_host_name_check' => 'This service supports only forms hosted on the main www.stanford.edu servers. (This includes those going through vanity URLs, although at the moment you need to use the www.stanford.edu URL in this form.)',
+                'dfv_host_name_check' => 'This service supports only forms hosted on the main web.stanford.edu servers. (This includes those going through vanity URLs, although at the moment you need to use the web.stanford.edu URL in this form.)',
                 'dfv_directory_exists_check' => 'The form URL you have entered maps to an AFS path that does not exist.',
                 'dfv_user_can_admin_check' => 'The form URL you have entered maps to an AFS path for which you are not an administrator.',
                 'dfv_form_not_found' => 'Cannot find a form at that URL.',
@@ -2255,7 +2924,7 @@ sub add_form_by_url {
     }
 
     # figure out what AFS path that URL corresponds to
-    # throw a suggestion if the URL is not www.stanford.edu?
+    # throw a suggestion if the URL is not web.stanford.edu?
     # figure out the AFS directory
     # check to see if the user has admin access to that directory
     # if the user has admin access, add them as admins to that form
@@ -2292,7 +2961,7 @@ sub dfv_add_url_check {
         }
 
         # Now, we check to see if the host name is OK
-        if (!$self->host_name_check($url)) {
+        if (!host_name_check($url)) {
             $dfv->name_this('dfv_host_name_check');
             return 0;
         }
@@ -2380,11 +3049,16 @@ sub save_publishing_settings {
     my @form_fields = qw/confirmation_method 
                          confirmation_text
                          confirmation_url
+                         confirmation_email
                          submission_method
                          submission_email
+                         submission_email_csv
                          submission_email_subject
+                         submission_email_sender
+                         css
                          url
                          is_live
+						 can_be_continued
                         /;
 
     # get a hash reference for the parameters and the original values
@@ -2408,14 +3082,19 @@ sub save_publishing_settings {
         # The following are fields marked as required
         required => [qw( confirmation_method
                          submission_method
+                         css
                          is_live )
                     ],
         # The following are the option fields
         optional => [qw( submission_email
+		                 submission_email_csv
                          submission_email_subject
+                         submission_email_sender
                          confirmation_text
                          confirmation_url
+                         confirmation_email
                          url
+						 can_be_continued
                     )],
         
         # Detail the dependencies between fields. Regularly optional
@@ -2437,11 +3116,12 @@ sub save_publishing_settings {
         # Some fields (whether optional or not) need to pass tests before
         # they can be considered valid
         constraint_methods => {
-            submission_email => email(),
+            submission_email => dfv_multiple_email(),
             url => [
                 FV_URI_HTTP(-scheme => qr/https?/),
                 dfv_url_check($self),
             ],
+            css => dfv_css_check($self),
             confirmation_url => FV_URI_HTTP(-scheme => qr/https?/),
             confirmation_method =>
                 sub { my $val = pop; return $confirmation_values{$val}; }
@@ -2457,10 +3137,11 @@ sub save_publishing_settings {
             format => '%s',
             # constraint-specific messages
             constraints => {
-                'email' => 'Not a valid email format.',
+                'dfv_multiple_email' => 'One or more email addresses are not formatted correctly. Also, make sure to separate email addresses using a comma.',
                 'FV_URI_HTTP' => 'Not a valid URL format.',
+                'dfv_css_check' => 'The style chosen is invalid.',
                 'dfv_form_name_check' => 'The form name is not valid.',
-                'dfv_host_name_check' => 'This service supports only forms hosted on the main www.stanford.edu servers. (This includes those going through vanity URLs, although at the moment you need to use the www.stanford.edu URL in this form.)',
+                'dfv_host_name_check' => 'This service supports only forms hosted on the main web.stanford.edu servers. (This includes those going through vanity URLs, although at the moment you need to use the web.stanford.edu URL in this form.)',
                 'dfv_directory_exists_check' => 'The form URL you have entered maps to an AFS path that does not exist.',
                 'dfv_user_can_write_check' => 'The form URL you have entered maps to an AFS path to which you cannot write.',
                 'dfv_unique_path_check' => 'The form URL you have entered maps to an AFS path that is already in use by another form.',
@@ -2544,17 +3225,31 @@ sub fill_publishing_settings {
     my @form_fields = qw/confirmation_method 
                          confirmation_text
                          confirmation_url
+                         confirmation_email
                          submission_method
                          submission_email
+                         submission_email_csv
                          submission_email_subject
+                         submission_email_sender
+						 css
                          url
                          is_live
+						 can_be_continued
                         /;
 
     foreach my $field (@form_fields) {
         $self->values->{'form'}{$field} = $self->form->$field;
     }
-    
+}
+
+sub fill_manage_settings {
+  my $self = shift;
+  my @form_fields = qw/creator
+                       users
+                      /;
+  foreach my $field (@form_fields) {
+    $self->values->{'form'}{$field} = $self->form->$field;
+  }
 }
  
 sub display_error {
@@ -2601,6 +3296,61 @@ sub display_error {
 # TODO: Error Checking
 # TODO: Testing Code
 
+sub dfv_css_check {
+    my $self = shift;
+	return sub {
+	    my $dfv = shift;
+		my $css = $dfv->get_current_constraint_value();
+
+		if (($css eq "stanford") || ($css eq "iframe")) {
+		    return 1;
+		}
+		else {
+		    return 0;
+		}
+	}
+}
+
+##############################################################################
+# Usage       : ????
+# Purpose     : ????
+# Returns     : ????
+# Parameters  : none
+# Throws      : no exceptions
+# Comments    : none
+# See Also    : n/a
+
+# TODO: Error Checking
+# TODO: Testing Code
+
+sub dfv_multiple_email {
+    my $self = shift;
+    return sub {
+        my $dfv = shift;
+        my $value = $dfv->get_current_constraint_value();
+        my @emails = split(',',$value);
+        foreach my $email (@emails) {
+            unless (valid_email(trim($email))) {
+                $dfv->name_this('dfv_multiple_email');
+                return 0;
+            }
+        }
+        return 1;
+    }
+}
+
+##############################################################################
+# Usage       : ????
+# Purpose     : ????
+# Returns     : ????
+# Parameters  : none
+# Throws      : no exceptions
+# Comments    : none
+# See Also    : n/a
+
+# TODO: Error Checking
+# TODO: Testing Code
+
 sub dfv_url_check {
     my $self = shift;
     return sub {
@@ -2618,7 +3368,7 @@ sub dfv_url_check {
         }
 
         # Now, we check to see if the host name is OK
-        if (!$self->host_name_check($url)) {
+        if (!host_name_check($url)) {
             $dfv->name_this('dfv_host_name_check');
             return 0;
         }
@@ -2755,12 +3505,10 @@ sub form_name_check {
 # the organization
 
 sub host_name_check {
-	my $self = shift;
-    my $url  = shift;
+    my $url = shift;
         
-    # the domain name has to be www.stanford.edu
-	my $domain_name = $self->domain_name;
-    if ($url =~ m#^https?://$domain_name/(.+)$#) {
+    # the domain name has to be web.stanford.edu
+    if ($url =~ m#^https?://web.stanford.edu/(.+)$#) {
 
 # this one lets vanity URLs in (TODO: implement)
 #    if ($url =~ m#^https?://(.+)?stanford.edu/(.+)$#) {
@@ -2788,7 +3536,7 @@ sub url_to_file {
     
     my ($base, $rest);
    
-    if ($url =~ m#^https?://www.stanford.edu/(class|group|dept)/([^/]+)(/.+)?#i) {
+    if ($url =~ m#^https?://web.stanford.edu/(class|group|dept)/([^/]+)(/.+)?#i) {
         $base = "/afs/ir/" . $1 . '/' . $2;
         $rest = $3;
         # WWW or cgi-bin?
@@ -2801,7 +3549,7 @@ sub url_to_file {
         }
 
     }
-    elsif ($url =~ m#^https?://www.stanford.edu/services/([^/]+)(/.+)?#i)
+    elsif ($url =~ m#^https?://web.stanford.edu/services/([^/]+)(/.+)?#i)
     {
         $base = "/afs/ir/dist/web/services/" . $1;
         $rest = $2;
@@ -2811,7 +3559,7 @@ sub url_to_file {
             $rest = $1;
         }
     }
-    elsif ($url =~ m#^https?://www.stanford.edu/(people/|~)([^/]+)(/.+)?#i){
+    elsif ($url =~ m#^https?://web.stanford.edu/(people/|~)([^/]+)(/.+)?#i){
         my $first_letter = substr($2,0,1);
         my $second_letter = substr($2,1,1);
         $base = "/afs/ir/users/$first_letter/$second_letter/$2";
@@ -2825,7 +3573,7 @@ sub url_to_file {
             $base .= "/WWW";
         }
     }
-    elsif ($url =~ m#^https?://www.stanford.edu(/.+)?#i) {
+    elsif ($url =~ m#^https?://web.stanford.edu(/.+)?#i) {
         $base = "/afs/ir/group/homepage";
         $rest = $1;
         # WWW or cgi-bin?

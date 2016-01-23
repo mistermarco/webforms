@@ -8,6 +8,12 @@ package FB::Form::Element::Select::LikertItem;
 
 use FB::Form::Element::Select;
 our @ISA = qw(FB::Form::Element::Select);
+{
+
+# Elements, by default, don't share items, but likertItem does
+sub is_sharing_items { return 1; }
+
+}
 
 {
     our %defaults = (

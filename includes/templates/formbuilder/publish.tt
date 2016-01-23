@@ -1,0 +1,123 @@
+<div class="content-box">
+    [% IF page.confirmations.publishing -%]
+    <div class="confirm-box">
+        <h2>[% page.confirmations.publishing.header %]</h2>
+        <p>[% page.confirmations.publishing.message %]</p>
+    </div>
+    [% END -%]
+    [% IF page.errors.publishing -%]
+    <div class="error-box">
+        <h2>[% page.errors.publishing.header %]</h2>
+        <p>[% page.errors.publishing.message %]</p>
+    </div>
+    [% END -%]
+    <form action="formbuilder.cgi" method="post">
+        <h3>Displaying Confirmation</h3>
+        <p>After users submit your form and all fields are checked, it's a good idea to either show them a Thank You message or to redirect them to a Thank You page. Choose the method you prefer below, enter a message or a URL, and save the settings by clicking on the submit button below.</p>
+        <fieldset>
+            <legend>Confirmation Method</legend>
+            <input type="radio" id="radio1" name="confirmation_method" value="text" [% IF values.form.confirmation_method == 'text' %]checked="checked"[% END %] />
+            <label for="radio1">Show Message</label> (up to 10K)<br />
+            <p class="textarea [% IF page.error_confirmation_text %]error-field[% END %]">
+                [% IF page.error_confirmation_text %]<span class="error">[% page.error_confirmation_text %]</span>[% END %]
+                <textarea name="confirmation_text" rows="3" cols="35">[% values.form.confirmation_text FILTER html %]</textarea>
+            </p>
+            <input type="radio" id="radio2" name="confirmation_method" value="url" [% IF values.form.confirmation_method == 'url' %]checked="checked"[% END %] />
+            <label for="radio2">Redirect to Web Page (e.g. http://web.stanford.edu/thanks.html)</label><br />
+            <p class="text [% IF page.error_confirmation_url %]error-field[% END %]">
+                [% IF page.error_confirmation_url %]<span class="error">[% page.error_confirmation_url %]</span>[% END %]
+                <input type="text" name="confirmation_url" size="45" value="[% values.form.confirmation_url %]" />
+            </p>
+        </fieldset>
+        <h3>Sending a Confirmation to Users</h3>
+        <p>After users submit your form successfully, they can receive a confirmation by email. This requires an email address field on your form to be used for collecting the user's email address. Choose the field to use below.</p>
+		[% email_fields = form.get_email_fields %]
+		<p>
+		<label for="confirmation_email">User Email Confirmation Method:</label><br />
+		[% IF email_fields.size > 0 %]
+	        <select name="confirmation_email">
+			<option value="">Do not send users confirmation of their submission</option>
+         [% ELSE %]
+	        <select name="confirmation_email" disabled="disabled">
+			<option value="">No email fields found. Add one through the Build Tab.</option>
+		 [% END %]
+			[% FOREACH email_input = email_fields %]<option value="[% email_input.id %]" [% IF values.form.confirmation_email == email_input.id %]selected="selected"[% END %]>Send using: [% email_input.label.substr(0,40) %][% IF email_input.label.length > 40 %]...[% END %]</option>[% END %]
+         </select>
+		</p>
+        <h3>Handling Data</h3>
+        <p>After users submit your form successfully, the data they entered can either be sent to an email address, saved to a database, or both. Choose the method you prefer below, enter an email address (if needed) and save the settings by clicking on the submit button below.<br /><strong>Please note</strong>: Because any file uploads are only sent to you by email as attachments, if you have any file upload fields in your form, you will need to choose an option that includes email or you won't receive any files attached to form submissions.</p>
+        <p class="dropdown">
+            <label for="submission_method">Submission Method:</label><br />
+            <select name="submission_method">
+                <option value="both" [% IF values.form.submission_method == 'both' %]selected="selected"[% END %]>Send an email and write to database</option>
+                <option value="email" [% IF values.form.submission_method == 'email' %]selected="selected"[% END %]>Send an email only</option>
+                <option value="database" [% IF values.form.submission_method == 'database' %]selected="selected"[% END %][% IF form.has_file_fields > 0 %]disabled=disabled[% END %]>Write to database only [% IF form.has_file_fields > 0 %]- disabled - see above[% END %]</option>
+            </select>
+        </p>
+        <h3>Receiving emails</h3>
+		<p>If you choose to have a copy of the submission sent to you by email, you can specify the recipients, the subject, and the email address it should come from below.<br /><strong>Please Note:</strong> The service performs some basic checks to see if an email address is formatted correctly, but it cannot tell if the email address is a real one. It's possible that a submission will be lost if the email address is entered incorrectly.</p>
+		<p>
+            <input type="checkbox" id="submission_email_csv" name="submission_email_csv" value="1" [% IF values.form.submission_email_csv == 1 %]checked="checked"[% END %] />
+            <label for="submission_email_csv">Attach a record of the submission to the email</label> (CSV format)
+		</p>
+        <p class="email [% IF page.error_submission_email %]error-field[% END %]">
+            [% IF page.error_submission_email %]<span class="error">[% page.error_submission_email %]</span>[% END %]
+            <label for="submission_email">Email Recipients</label> (separate multiple email addresses with commas)<br />
+            <input type="text" id="submission_email" class="email" name="submission_email" size="45" value="[% values.form.submission_email %]" />
+        </p>
+        <p class="email [% IF page.error_submission_email_subject %]error-field[% END %]">
+            [% IF page.error_submission_email_subject %]<span class="error">[% page.error_submission_email_subject %]</span>[% END %]
+            <label for="submission_email_subject">Email Subject</label><br />
+            <input type="text" id="submission_email_subject" class="email" name="submission_email_subject" size="45" value="[% values.form.submission_email_subject %]" />
+        </p>
+        [% email_fields = form.get_email_fields %]
+        <p>
+        <p>You can choose to have the email appear to come from your user, instead of the default Web Forms Service email address. This requires an email address field on your form to be used for collecting the user's email address. Choose the field to use below.</p>
+        <label for="submission_email_sender">Sender's Address</label><br />
+        [% IF email_fields.size > 0 %]
+            <select name="submission_email_sender">
+            <option value="">Use the default Web Forms Service address</option>
+         [% ELSE %]
+            <select name="submission_email_sender" disabled="disabled">
+            <option value="">No email fields found. Add one through the Build Tab.</option>
+         [% END %]
+            [% FOREACH email_input = email_fields %]<option value="[% email_input.id %]" [% IF values.form.submission_email_sender == email_input.id %]selected="selected"[% END %]>Use: [% email_input.label.substr(0,40) %][% IF email_input.label.length > 40 %]...[% END %]</option>[% END %]
+         </select>
+        </p>
+        <h3>Style</h3>
+		<p>Once your form is live, it'll be displayed using the style chosen below. The preview on the right will remain the same, however.</p>
+		<label for="css">Style:</label><br />
+		<select name="css">
+		    <option value="stanford" [% IF values.form.css == 'stanford' %]selected="selected"[% END %]>Stanford</option>
+		    <option value="iframe" [% IF values.form.css == 'iframe' %]selected="selected"[% END %]>iframe</option>
+		</select>
+		<p>
+ 		&ldquo;Stanford&rdquo; is a cardinal and sandstone style very similar to what's seen in the preview on the right.<br />
+		&ldquo;Iframe&rdquo; is a plain style suitable for embedding forms into existing pages using an iframe.
+		</p>
+		<h3>Allowing Users to Save and Continue Later</h3>
+		<p>You can allow your users to save their progress and finish their submissions at a later time. This is useful for long forms, or those that might require several visits to complete. Because incomplete form submissions are stored under a person's SUNetID, <strong>saving will only work if the form is protected by WebAuth</strong> (<a href="https://itservices.stanford.edu/service/webforms/doingmore">Learn how to protect your form with WebAuth</a>).</p>
+        <p><input type="checkbox" id="can_be_continued" name="can_be_continued" value="1" [% IF values.form.can_be_continued == 1 %]checked="checked"[% END %] />
+            <label for="can_be_continued">Allow users to save their form entries and continue them later.</label>
+        </p>
+        <h3>Making the form live</h3>
+        <p>To make your form live enter the URL for the form and change the status to Live. The form will not be written to AFS, but the web server will use this information to know when to display your form to users. The directory needs to exist, you must have write access to it and the full URL needs to include a name for your form plus the file extension ".fb".</p>
+        <p class="text [% IF page.error_url %]error-field[% END %]">
+            [% IF page.error_url %]<span class="error">[% page.error_url %]</span>[% END %]
+            <label for="form_url">Form URL (e.g. http://web.stanford.edu/~[% user.identifier %]/myform.fb)</label><br />
+            <input type="text" id="form_url" name="url" size="45" value="[% values.form.url %]" />
+        </p>
+        <p class="dropdown">
+            <label for="status">Status</label><br />
+            <select name="is_live">
+                <option value="0" [% IF NOT values.form.is_live %]selected="selected"[% END %]>Not Live</option>
+                <option value="1" [% IF values.form.is_live %]selected="selected"[% END %]>Live</option>
+            </select>
+        </p>
+        <p class="action">
+            <input type="submit" value="Save Publishing Settings" class="btn btn-primary" />
+        </p>
+        <input type="hidden" name="action" value="save_publishing_settings" />
+        <input type="hidden" name="form_id" value="[% form.id %]">
+    </form>
+</div>

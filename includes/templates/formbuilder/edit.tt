@@ -1,0 +1,160 @@
+<div class="content-box">
+    [% IF page.notices.new_form -%]
+    <div class="confirm-box">
+        <h2>Let's get started!</h2>
+        <p>First, give your form a name and a brief introduction. The name is required, but the introduction is optional, although recommended.</p>
+    </div>
+    [% END -%]
+    [% IF page.confirmations.edit -%]
+    <div class="confirm-box">
+        <h2>[% page.confirmations.edit.header %]</h2>
+        <p>[% page.confirmations.edit.message %][% IF form.nodes.size == 0 %]<br />You can add fields to the form using the BUILD tab above.[% END %]</p>
+    </div>
+    [% END -%]
+    [% IF page.errors.edit -%]
+    <div class="error-box">
+        <h2>[% page.errors.edit.header %]</h2>
+        <p>[% page.errors.edit.message %]</p>
+    </div>
+    [% END -%]
+    [% IF page.show_form_properties == 1 %]
+    <form action="formbuilder.cgi" method="post">
+        [% UNLESS page.notices.new_form || page.confirmations.edit %]<p>Here you can update information about your form. The form name is required, but the introduction is optional, although recommended.</p>[% END %]
+        <p class="properties  [% IF page.error_name %]error-field[% END %]">
+            [% IF page.error_name %]<span class="error">[% page.error_name %]</span>[% END %]
+            <label for="name">Form Name</label> (required)<br />
+            <input type="text" id="name" class="form_name" name="name" size="45" value="[% values.form.name FILTER html %]" />
+        </p>
+        <p class="description">
+            <label for="description">Introduction</label><br />
+            <textarea id="description" class="description" name="description" rows="5" cols="35">[% values.form.description FILTER html %]</textarea>
+        </p>
+        <p class="action">
+            <input type="submit" class="btn btn-primary" value="Save Form Properties" />
+        </p>
+        <input type="hidden" name="form_id" value="[% form.id %]">
+        <input type="hidden" name="action" value="save_form_properties" />
+    </form>
+    [% ELSIF page.show_node_properties %]
+    [% IF page.confirmations.new_node_added %]
+    <div class="confirm-box">
+        <h2>Field added successfully!</h2>
+        <p>The field was added to the <a href="#[% input.id %]">end of the form</a>.<br />Update the field properties below and then click Save Field Properties.</p>
+    </div>
+    [% END %]
+    <form action="formbuilder.cgi" method="post">
+        <h3>Field Properties</h3>
+        [% UNLESS page.confirmations.new_node_added  || page.confirmations.edit %]<p>Update the field properties below and then click Save Field Properties.[% END %]</p>
+        <p class="[% IF page.error_label %]error-field[% END %]">
+            [% IF page.error_label %]<span class="error">[% page.error_label %]</span>[% END %]
+            <label for="input_label">Label</label> [% IF input.is_label_required %](required)[% END %]<br />
+            <input type="text" id="input_label" class="" name="label" size="45" value="[% values.input.label FILTER html %]" />
+        </p>
+        [% IF input.can_have_value == 1 %]
+        <p class="[% IF page.error_value %]error-field[% END %]">
+            [% IF page.error_value %]<span class="error">[% page.error_value %]</span>[% END %]
+            <label for="value">Text</label><br />
+            <textarea id="input_value" name="value" rows="10" cols="35">[% values.input.value %]</textarea>
+        </p>
+        [% END %]
+        [% IF input.can_be_required == 1 %]
+        <p>
+            <input type="checkbox" name="is_required" id="is_required" value="1" [% IF values.input.is_required %]checked="checked"[% END %] />
+            <label for="is_required">Required</label> (The user who's filling out the form can't skip this field.)
+        </p>
+        [% END %]
+        [% IF input.can_be_autofilled == 1 %]
+        <p>
+            <input type="checkbox" name="is_autofilled" id="is_autofilled" value="1" [% IF values.input.is_autofilled %]checked="checked"[% END %] />
+            <label for="is_autofilled">Autofill</label> (Obtain and display data automatically from LDAP: available for WebAuth protected forms only.)<br /><a href="https://itservices.stanford.edu/service/webforms/doingmore">Learn how to protect your form with WebAuth</a>
+        </p>
+        [% END %]
+		[% IF input.instructions != "" %]
+		[% input.instructions %]
+		[% END %]
+    [% IF input.can_have_elements == 1 && input.is_custom == 0 %]
+    <h3>Edit Questions</h3>
+        <table class="manage">
+            <tr><th>Order</th><th>Question</th><th>Delete</th></tr>
+            [% FOREACH element IN input.elements %]
+            <tr>
+                <td class="[% error_field_name = "error_" _ element.id _ "_element_sort_order" %][% IF page.$error_field_name  %]error-field[% END %]"><input type="text" name="[% element.id %]_element_sort_order" size="3" maxlength="3" style="width: 3em;" value="[% field_name = element.id _ '_element_sort_order' %][% values.input.$field_name %]" /></td>
+                <td class="[% error_field_name = "error_" _ element.id _ "_element_value" %][% IF page.$error_field_name  %]error-field[% END %]"><input type="text" name="[% element.id %]_element_value" style="width: 200px;" value="[% field_name = element.id _ '_element_value' %][% values.input.$field_name FILTER html %]" /></td>
+            <td class="[% error_field_name = "error_delete_element_" _ element.id  %][% IF page.$error_field_name  %]error-field[% END %]"><input type="checkbox" name="delete_element_[% element.id %]" [% field_name = 'delete_element_' _ element.id  %][% IF values.input.$field_name %]checked="checked"[% END %] /></td>
+            </tr> 
+		    [% END %]
+            <tr>
+            	<td>New Question:</td>
+            	<td><input type="text" name="new_element_value" style="width: 200px;" value="[% values.input.new_element_value %]" /></td>
+            	<td>&nbsp;</td>
+        	</tr>
+            </table>
+			[%#
+				This section will create the form to update the itemset used by the elements in a collection.
+				In particular, this is useful for adding answers to a survey.
+			%]
+		    <h3>Edit Answers</h3>
+		    <p>Re-arrange, add, delete or edit the options available for this field using the fields below.</p>
+		    <table class="manage">
+		        <tr>
+		            <th>Order</th>
+		            <th>Answer</th>
+		            <th>Delete</th>
+		        </tr>
+				[% FOREACH item IN input.elements.first.items %]
+		        <tr>
+		            <td class="[% error_field_name = "error_" _ item.id _ "_item_sort_order" %][% IF page.$error_field_name  %]error-field[% END %]"><input type="text" name="[% item.id %]_item_sort_order" size="3" maxlength="3" style="width: 3em;" value="[% field_name = item.id _ '_item_sort_order' %][% values.input.first_element.$field_name %]" /></td>
+		            <td class="[% error_field_name = "error_" _ item.id _ "_item_value" %][% IF page.$error_field_name  %]error-field[% END %]"><input type="text" name="[% item.id
+		            %]_item_value" style="width: 200px;" value="[% field_name = item.id _ '_item_value' %][% values.input.first_element.$field_name FILTER html %]" /></td>
+		            <td class="[% error_field_name = "error_delete_item_" _ item.id  %][% IF page.$error_field_name  %]error-field[% END %]"><input type="checkbox" name="delete_item_[% item.id %]" [% field_name = 'delete_item_' _ item.id  %][% IF values.input.first_element.$field_name %]checked="checked"[% END %] /></td>
+		        </tr>
+		        [% END %]
+		        <tr>
+		            <td>New Answer:</td>
+		            <td><input type="text" name="new_item_value" style="width: 200px;" value="[% values.input.new_item_value %]" /></td>
+		            <td>&nbsp;</td>
+		        </tr>
+		    </table>
+	[% END %]
+    [% IF input.can_have_items == 1 %]
+    <h3>Edit Field Options</h3>
+    [% IF input.is_custom == 0 %]
+    <p>Re-arrange, add, delete or edit the options available for this field using the fields below.</p>
+    <table class="manage">
+        <tr>
+            <th>Order</th>
+            <th>Option Name</th>
+            <th>Delete</th>
+        </tr>
+        [% FOREACH item IN input.items %]
+        <tr>
+            <td class="[% error_field_name = "error_" _ item.id _ "_item_sort_order" %][% IF page.$error_field_name  %]error-field[% END %]"><input type="text" name="[% item.id %]_item_sort_order" size="3" maxlength="3" style="width: 3em;" value="[% field_name = item.id _ '_item_sort_order' %][% values.input.$field_name %]" /></td>
+            <td class="[% error_field_name = "error_" _ item.id _ "_item_value" %][% IF page.$error_field_name  %]error-field[% END %]"><input type="text" name="[% item.id
+            %]_item_value" style="width: 200px;" value="[% field_name = item.id _ '_item_value' %][% values.input.$field_name FILTER html %]" /></td>
+            <td class="[% error_field_name = "error_delete_item_" _ item.id  %][% IF page.$error_field_name  %]error-field[% END %]"><input type="checkbox" name="delete_item_[% item.id %]" [% field_name = 'delete_item_' _ item.id  %][% IF values.input.$field_name %]checked="checked"[% END %] /></td>
+        </tr>
+        [% END %]
+        <tr>
+            <td>New Option:</td>
+            <td><input type="text" name="new_item_value" style="width: 200px;" value="[% values.input.new_item_value %]" /></td>
+            <td>&nbsp;</td>
+        </tr>
+    </table>
+    [% ELSE %]
+    <p>This list of options is custom and can't be modified except by its owners.</p>
+    [% END %]
+    [% END %]
+    <p class="action"><input type="submit" class="btn btn-primary" value="Save Field Properties" /> <a class="btn btn-danger" href="formbuilder.cgi?action=confirm_delete_node&form_id=[% form.id %]&node_id=[% input.id %]"><span class="glyphicon glyphicon-remove"></span> Delete Field</a>
+	</p>
+        <input type="hidden" name="form_id" value="[% form.id %]">
+        <input type="hidden" name="node_position" value="[% page.node_position %]">
+        <input type="hidden" name="action" value="save_field_properties" />
+        <input type="hidden" name="node_id" value="[% input.id %]" />
+    </form>	
+    [% ELSE %]
+    <div class="notice-box">
+        <h2>No field selected!</h2>
+        <p>To edit the form, please move your mouse over one of the elements on the right side of this page, and click on the Edit link that will appear.</p>
+    </div>
+    [% END %]
+</div>

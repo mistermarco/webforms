@@ -190,17 +190,28 @@ sub resort_items {
 
 sub store {
     my $self = shift;
+    my $clone = shift;
+    if (!defined($clone)) { $clone = 0; }
   
     # does this object have an ID?
     # If yes, update the record
     # If not, create a new record
     
     # first, store the itemset as we'll need its ID
-    $self->itemset->store();
+    # note that we don't pass $clone to the itemset here
+    # if the element is sharing items with other elements
+    # such as in likert items
+    if ($self->is_sharing_items) {
+        $self->itemset->store();        
+    }
+    else {
+        $self->itemset->store($clone);
+    }
+    
     my $itemset_id = $self->itemset->id();
   
     # TODO: any updates needed to items?
-    if (defined($self->id)) {
+    if ((defined($self->id)) && ($clone == 0)) {
         my $stored_select = FB::DB::Element->retrieve($self->id);
         $stored_select->set(
             label    => $self->label,
@@ -264,7 +275,7 @@ sub remove_from_store {
     if ($stored_object) {
         $stored_object->delete;        
     }
-    
+
     # ask the itemset to delete itself
     $self->itemset->remove_from_store;
 }

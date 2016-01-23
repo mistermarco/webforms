@@ -1,0 +1,47 @@
+[% USE CGI %]
+[% SET nodes = form.nodes.0 ? form.nodes : [ form.nodes ] %]
+[% SET number_of_nodes = nodes.size %]
+<div class="form_info [% IF CGI.param('action') == 'edit_form_properties' %]active[% END %]">
+	       <a class="btn btn-primary btn-sm edit-field-button" href="formbuilder.cgi?action=edit_form_properties&form_id=[% form.id %]"><span class="glyphicon glyphicon-pencil"></span> Edit<span class='sr-only'>Form Properties</span></a>
+		<div class="highlight-box" onclick="location.href='formbuilder.cgi?action=edit_form_properties&form_id=[% form.id %]'" title="Click to Edit">
+			<div class="form-content">
+				<h1>[% form.name %]</h1>
+				<p>[% form.description %]</p>
+			</div>
+		</div>
+	</div>
+    [% IF form.has_required_fields %]<div class="plain-box">
+       <p><strong><abbr class="required" title="Required Field">*</abbr> indicates required fields.</strong></p>
+    </div>
+    [% END %]
+	<form method="POST" action="formbuilder.cgi">
+	<ul id="sortable">
+    [% FOREACH node = form.nodes %]
+	<li id="sort_[% node.id %]" [% IF node.id == input.id %]class="active"[% END %]>
+	<div class="sort-row">
+    [% IF number_of_nodes > 1 %]
+	<div class="sort_order">
+	  <i class="fa fa-bars"></i>
+	  <label for="number_sort_[% node.id %]" class="sr-only">Location for field: [% node.label %]</label>
+	  <input id="number_sort_[% node.id %]" class="number_sort" name="number_sort_[% node.id %]" type="text" value="[% loop.index() + 1 %]" />
+	</div>
+	[% ELSE %]
+	<div class="sort_order_placeholder"></div>
+	[% END %]
+
+    <div class="highlight-box [% IF loop.last AND page.new_node_added %]new-field[% END %]" id="[% node.id %]" title="Click to Edit, Drag to Sort">
+        <a class="edit-field-button btn btn-primary btn-sm" href="formbuilder.cgi?action=edit_node&form_id=[% form.id %]&node_id=[% node.id %]"><span class="glyphicon glyphicon-pencil"></span> Edit<span class="sr-only"> [% node.label %]</span></a>
+        <div class="section-content" onclick="location.href='formbuilder.cgi?action=edit_node&form_id=[% form.id %]&node_id=[% node.id %]'">
+            [% node.as_html(page) %]
+        </div>
+    </div>
+	</div>
+	</li>
+    [% END %]
+	</ul>
+	[% IF number_of_nodes > 1 %]
+      <input name="form_id" value="[% form.id %]" type="hidden" />
+	  <input name="action" value="sort_nodes" type="hidden" />
+	  <input id="submit_save_order" type="submit" class="btn btn-primary" value="Save Changes to Field Order">
+    [% END %]
+	</form>

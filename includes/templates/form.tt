@@ -1,0 +1,35 @@
+[% USE CGI %]
+  <form method="post" action="" enctype="multipart/form-data">
+
+  <h1>[% form.name %]</h1>
+  [% IF page.errors.main %]
+  <div class="error-box">
+      <h2>[% page.errors.main.header %]</h2>
+      <p role="alert">[% page.errors.main.message %]</p>
+  </div>
+  [% END %]
+  <p>[% form.description %]</p>
+  [% IF form.has_required_fields %]
+     <p><strong><abbr class="required" title="Required Field">*</abbr> indicates required fields.</strong></p>
+  [% END %]
+  [% IF page.confirm.main %]
+  <div class="confirm-box">
+      <h2>[% page.confirm.main.header %]</h2>
+      <p>[% page.confirm.main.message %]</p>
+  </div>
+  [% END %]
+  
+    [% FOREACH element = form.nodes %][% element.node_id %][% INCLUDE $element.template %][% END %]
+
+      <p class="hide">
+        <label for="comments" tabindex="-1">Please skip. Do not fill this out.</label>
+        <br />
+        <textarea name="comments" id="comments" rows="1" cols="1" tabindex="-1"></textarea>
+      </p>
+      <!-- The following field is only needed for testing not for live forms -->
+      <input type="hidden" name="form_id" value="[% form.id %]" />
+      <p class="action">
+        <button class="submit" type="submit" [% IF form.confirm_before_submit == 1 %]onclick="return confirm('Are you sure you want to submit the form?')"[% END %]>Submit Form</button>
+        [% IF form.can_be_continued == 1 && CGI.remote_user.defined %]<button class="submit" type="submit" name="save" value="save">Save Form</button>[% END %]
+      </p>
+  </form>

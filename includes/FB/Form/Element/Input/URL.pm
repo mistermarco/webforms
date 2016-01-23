@@ -14,10 +14,10 @@ use Data::FormValidator::Constraints qw(:closures :regexp_common);
 
 {
     our %defaults = (
-        label    => "URL",
+        label    => "URL (e.g. http://www.stanford.edu)",
         class    => "url",
         type     => "input_url",
-        template => "input_text.tt",
+        template => "input_url.tt",
     );
     
     sub defaults {

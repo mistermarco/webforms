@@ -1,0 +1,98 @@
+[% USE date %]
+<!DOCTYPE html>
+<html>
+<head>
+<title>Form Management</title>
+<script type="text/javascript">
+<!--
+if ((window.screen.width < 640) || (window.screen.height < 640)){document.write('<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">')}
+//-->
+</script>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="shortcut icon" type="image/x-icon" href="https://web.stanford.edu/favicon.ico">
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/su-identity/css/su-identity.css" media="all">
+<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700" media="all">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/stanfordmodern.css" media="all">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/mobile.css" media="only screen and (max-width: 640px)">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/print.css" media="print">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/dept/its/css/services/webforms/formbuilder.css">
+<!--[if IEMobile]>
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/mobile.css" media="screen">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/wp7.css" media="screen">
+<![endif]-->
+<script type="text/javascript" src="https://web.stanford.edu/stanfordmodern/jquery/jquery-1.8.3.min.js"></script>
+<script type="text/javascript" src="https://web.stanford.edu/stanfordmodern/v2.5/js/stanfordmodern.js"></script>
+</head>
+<body>
+<div id="skipnav"><a href="#content">Skip navigation</a></div>
+<div id="su-wrap"> 
+  <!-- #su-wrap start -->
+  <div id="su-content"> <!-- #su-content start --> 
+    <!-- Start #layout -->
+    <div id="layout"> 
+      <!-- Start #wrapper -->
+      <div id="wrapper"> [% INCLUDE header.tt %] 
+        <!-- Start #container -->
+        <div id="container"> 
+          <!-- Start #content -->
+          <div id="content"> 
+            <!-- Start #center -->
+            <div id="center">
+              <div class="breadcrumb"><a href="http://itservices.stanford.edu/">IT Services</a> &raquo; <a href="http://itservices.stanford.edu/service/web">University Web Resources</a> &raquo; <a href="formbuilder.cgi">Form Management</a> &raquo; Confirm Form Deletion</div>
+              <h1>Form Management</h1>
+              <div class="notice-box">
+                <h2>Please Confirm</h2>
+                <p>Are you sure you want to delete "[% node.label %]"? This form has [% IF form.total_database_submissions > 0 %]<a href="formbuilder.cgi?action=view_entries&amp;form_id=[% form.id %]">[% IF form.total_database_submissions == 1 %]1 database entry[% ELSE %][% form.total_database_submissions %] database entries[% END %]</a> which will also be affected. Any values saved in this field will be deleted[% ELSE %]no database entries[% END %].</p>
+                <p>This cannot be undone.</p>
+                <form action="formbuilder.cgi" method="post">
+                  <input type="submit" value="Yes, Delete This Field" class="btn btn-danger" />
+                  <input type="hidden" name="action" value="delete_node" />
+                  <input type="hidden" name="form_id" value="[% form.id %]" />
+                  <input type="hidden" name="node_id" value="[% node.id %]" />
+                </form>
+                <br />
+                <a href="formbuilder.cgi?action=edit_form&form_id=[% form.id %]" class="btn btn-success">No, Cancel</a> </div>
+            </div>
+            <!-- End #center -->
+            [% INSERT footer.html %]
+            <div class="content_clear"></div>
+          </div>
+          <!-- End #content --> 
+        </div>
+        <!-- End #container --> 
+      </div>
+      <!-- End #wrapper --> 
+    </div>
+    <!-- End #layout --> 
+  </div>
+  <!-- #su-content end --> 
+</div>
+<!-- #su-wrap end --> 
+
+<!-- Global footer snippet start -->
+<div id="global-footer">
+  <div class="container">
+    <div class="row">
+      <div id="bottom-logo" class="span2"> <a href="http://www.stanford.edu"> <img src="https://www.stanford.edu/su-identity/images/footer-stanford-logo@2x.png" alt="Stanford University" width="105" height="49"/> </a> </div>
+      <!-- #bottom-logo end -->
+      <div id="bottom-text" class="span10">
+        <ul>
+          <li class="home"><a href="http://www.stanford.edu">SU Home</a></li>
+          <li class="maps alt"><a href="http://visit.stanford.edu/plan/maps.html">Maps &amp; Directions</a></li>
+          <li class="search-stanford"><a href="http://www.stanford.edu/search/">Search Stanford</a></li>
+          <li class="terms alt"><a href="http://www.stanford.edu/site/terms.html">Terms of Use</a></li>
+          <li class="copyright"><a href="http://www.stanford.edu/site/copyright.html">Copyright Complaints</a></li>
+        </ul>
+      </div>
+      <!-- .bottom-text end -->
+      <div class="clear"></div>
+      <p class="copyright vcard">&copy; <span class="fn org">Stanford University</span>, <span class="adr"> <span class="locality">Stanford</span>, <span class="region">California</span> <span class="postal-code">94305</span> </span></p>
+    </div>
+    <!-- .row end --> 
+  </div>
+  <!-- .container end --> 
+</div>
+<!-- Global footer snippet end -->
+</body>
+</html>

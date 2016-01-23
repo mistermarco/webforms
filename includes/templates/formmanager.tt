@@ -1,0 +1,142 @@
+[% USE date %]
+<!DOCTYPE html>
+<html>
+<head>
+<title>Form Management</title>
+<script type="text/javascript">
+<!--
+if ((window.screen.width < 640) || (window.screen.height < 640)){document.write('<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">')}
+//-->
+</script>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="shortcut icon" type="image/x-icon" href="https://web.stanford.edu/favicon.ico">
+<link rel="stylesheet" type="text/css" href="https://www.stanford.edu/su-identity/css/su-identity.css" media="all">
+<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700" media="all">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/stanfordmodern.css" media="all">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/mobile.css" media="only screen and (max-width: 640px)">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/print.css" media="print">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/dept/its/css/services/webforms/formbuilder.css">
+<!--[if IEMobile]>
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/mobile.css" media="screen">
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/stanfordmodern/v2.5/css/wp7.css" media="screen">
+<![endif]-->
+<script type="text/javascript" src="https://web.stanford.edu/stanfordmodern/jquery/jquery-1.8.3.min.js"></script>
+<script type="text/javascript" src="https://web.stanford.edu/stanfordmodern/v2.5/js/stanfordmodern.js"></script>
+</head>
+<body>
+<div id="skipnav"><a href="#content">Skip navigation</a></div>
+<div id="su-wrap"> 
+  <!-- #su-wrap start -->
+  <div id="su-content"> <!-- #su-content start --> 
+    <!-- Start #layout -->
+    <div id="layout"> 
+      <!-- Start #wrapper -->
+      <div id="wrapper"> [% INCLUDE header.tt %] 
+        <!-- Start #container -->
+        <div id="container"> 
+          <!-- Start #content -->
+          <div id="content"> 
+            <!-- Start #center -->
+            <div id="center">
+              <div class="breadcrumb"><a href="http://itservices.stanford.edu/">IT Services</a> &raquo; <a href="http://itservices.stanford.edu/service/web">University Web Resources</a> &raquo; <a href="http://itservices.stanford.edu/service/webforms/">Web Forms Service</a> &raquo; Form Management </div>
+              <h1>Form Management</h1>
+              [% total_forms = user.forms.size %]
+              [% max_forms   = user.max_forms %]
+              <p class="counter">You are using [% total_forms %] out of a maximum of [% max_forms %] forms.[% IF max_forms - total_forms < 5 %]<br /><a href="https://helpsu.stanford.edu/?pcat=webforms">Submit a HelpSU request to have your limit raised (it's free)!</a>[% END %]</p>
+              <form action="formbuilder.cgi" method="post">
+                <button type="submit" class="button">Create New Form</button>
+                <input type="hidden" name="action" value="create_new_form">
+              </form>
+              [% IF page.message -%]
+              <div class="notice-box">
+                <h2>Notice</h2>
+                <p>[% page.message %]</p>
+              </div>
+              [% END -%]
+              [% IF user.forms.size > 0 %]
+              <h2>My Forms</h2>
+              <table class="manage">
+                <tr>
+                  <th>Name</th>
+                  <th>Entries</th>
+                  <th>Status</th>
+                  <th>Creation Date</th>
+                  <th>Clone</th>
+                  <th>Delete</th>
+                  <th>Creator</th>
+                </tr>
+                [% FOREACH form = user.forms %]
+                <tr>
+                  <td><a href="formbuilder.cgi?action=edit_form&amp;form_id=[% form.form_id %]">[% form.name %]</a></td>
+                  <td>[% IF form.total_database_submissions > 0 %]<a href="formbuilder.cgi?action=view_entries&amp;form_id=[% form.form_id %]">[% IF form.total_database_submissions == 1 %]1 entry[% ELSE %][% form.total_database_submissions %] entries[% END %]</a>[% ELSE %]No entries[% END %]</td>
+                  <td>[% IF form.is_live == 1 %]<a href="[% form.url %]">Live</a>[% ELSE %]Not Live[% END %]</td>
+                  <td>[% form.date_created %]</td>
+                  <td><form id="clone_form" class="clone_form" action="formbuilder.cgi" method="post">
+                      <button type="submit" class="button">Clone this form</button>
+                      <input type="hidden" name="action" value="copy_form">
+                      <input type="hidden" name="form_id" value="[% form.form_id %]">
+                    </form></td>
+                  <td><a href="formbuilder.cgi?action=confirm_delete_form&amp;form_id=[% form.form_id %]">Delete</a></td>
+                  <td>[% form.creator %]</td>
+                </tr>
+                [% END %]
+              </table>
+              [% ELSE %]
+              <div class="notice-box">
+                <h2>Welcome!</h2>
+                <p>You have no forms to manage yet, but that's easy enough to remedy: <a href="formbuilder.cgi?action=create_new_form" class="button" title="Create New Form">Create New Form</a></p>
+              </div>
+              [% END %]
+              <form action="formbuilder.cgi" method="post">
+                <input type="hidden" name="action" value="add_form_by_url">
+                <p>You can manage forms created by others if you are listed as an administrator for the web directory where that form resides. To check, enter the form's URL below (e.g. http://web.stanford.edu/dept/its/form.fb) and click Add.</p>
+                <p class="addurl [% IF page.error_form_url %]error-field[% END %]">Form URL:
+                  [% IF page.error_form_url %]<span class="error">[% page.error_form_url %]</span>[% END %]
+                  <input type="text" name="form_url" size="40" value="[% page.form_url %]">
+                  <input type="submit" value="Add">
+                </p>
+              </form>
+              <p>Note: The Stanford Web Forms Service must not be used to gather and store <a href="https://dataclass.stanford.edu">High Risk Data</a>.</p>
+            </div>
+            <!-- End #center -->
+			[% INSERT footer.html %]
+            <div class="content_clear"></div>
+          </div>
+          <!-- End #content --> 
+        </div>
+        <!-- End #container --> 
+      </div>
+      <!-- End #wrapper --> 
+    </div>
+    <!-- End #layout --> 
+  </div>
+  <!-- #su-content end --> 
+</div>
+<!-- #su-wrap end --> 
+
+<!-- Global footer snippet start -->
+<div id="global-footer">
+  <div class="container">
+    <div class="row">
+      <div id="bottom-logo" class="span2"> <a href="http://www.stanford.edu"> <img src="https://www.stanford.edu/su-identity/images/footer-stanford-logo@2x.png" alt="Stanford University" width="105" height="49"/> </a> </div>
+      <!-- #bottom-logo end -->
+      <div id="bottom-text" class="span10">
+        <ul>
+          <li class="home"><a href="http://www.stanford.edu">SU Home</a></li>
+          <li class="maps alt"><a href="http://visit.stanford.edu/plan/maps.html">Maps &amp; Directions</a></li>
+          <li class="search-stanford"><a href="http://www.stanford.edu/search/">Search Stanford</a></li>
+          <li class="terms alt"><a href="http://www.stanford.edu/site/terms.html">Terms of Use</a></li>
+          <li class="copyright"><a href="http://www.stanford.edu/site/copyright.html">Copyright Complaints</a></li>
+        </ul>
+      </div>
+      <!-- .bottom-text end -->
+      <div class="clear"></div>
+      <p class="copyright vcard">&copy; <span class="fn org">Stanford University</span>, <span class="adr"> <span class="locality">Stanford</span>, <span class="region">California</span> <span class="postal-code">94305</span> </span></p>
+    </div>
+    <!-- .row end --> 
+  </div>
+  <!-- .container end --> 
+</div>
+<!-- Global footer snippet end -->
+</body>
+</html>

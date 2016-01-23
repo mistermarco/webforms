@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Web Form Services - Error</title>
+<!-- Base stylesheet which imports typography, resets, header/footer layout, and other miscellaneous styles -->
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/dept/its/css/modern/base2.css" />
+<!-- Page specific stylesheet for middle layout section (sidebars and content_main) -->
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/dept/its/css/modern/tertiary.css" />
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/dept/its/css/modern/tertiary_nocol.css" />
+<link rel="stylesheet" type="text/css" href="https://web.stanford.edu/dept/its/css/services/webforms/form_builder.css" />
+<!--[if IE 6]>
+  <style type="text/css">
+    @import url(https://web.stanford.edu/dept/its/css/modern/ie/ie_global.css);
+  </style>
+<![endif]-->
+<!--[if IE 7]>
+  <style type="text/css">
+	@import url(https://web.stanford.edu/dept/its/css/modern/ie/ie7.css);
+  </style>
+<![endif]-->
+</head>
+<body>
+    <div class="skip"><a href="#content">Skip to Content</a></div>
+    <div id="container">
+        [% INSERT 'error/header.html' %]
+    <div id="breadcrumb">
+      <p><a href="http://itservices.stanford.edu/">IT Services</a> &raquo; <a href="http://itservices.stanford.edu/service/web">University Web Resources</a> &raquo; <a href="http://itservices.stanford.edu/service/webforms/">Web Forms Service</a> &raquo; <a href="https://web.stanford.edu/dept/its/cgi-bin/services/webforms/formbuilder.cgi">Form Management</a> &raquo; Error</p>
+    </div>
+
+        <div id="title"><h1>Error</h1></div>
+        <div id="content_wide">
+            <h2>[% user_header %]</h2>
+            <p>[% IF user_message == '' %]An error occurred the Form Builder could not recover from. That's not good. The error was logged so the admins can track down the problem. Please try again later.[% ELSE %][% user_message %][% END %]</p>
+            <p>If the problem persists, or you need immediate help, you can submit an <a href="http://helpsu.stanford.edu/helpsu.cgi?pcat=webforms">HelpSU Request</a>. If you'd like to learn more about the service, leave comments or report bugs, please visit the <a href="https://itservices.stanford.edu/service/webforms">Web Forms Documentation</a>.</p>
+        </div>
+        [% INSERT 'error/footer.html' %]
+    </div>
+</body>
+</html>

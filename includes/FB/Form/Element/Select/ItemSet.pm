@@ -320,6 +320,8 @@ sub resort_items {
 
 sub store {
     my $self = shift;
+    my $clone = shift;
+    if (!defined($clone)) { $clone = 0; }
     
     # do nothing if this itemset is custom
     return 1 if $self->{_is_custom};
@@ -329,7 +331,7 @@ sub store {
     # If not, create a new record
 
     # TODO: any updates needed to items?
-    if (defined($self->id)) {
+    if ((defined($self->id)) && ($clone == 0)) {
         # retrieve the stored itemset from the database
         my $stored_itemset = FB::DB::ItemSet->retrieve($self->id);
         
@@ -371,7 +373,7 @@ sub store {
             for (my $i = 0; $i <= $#items; $i++) {
                 $items[$i]->set_itemset_id($new_stored_itemset->id);
                 $items[$i]->set_sort_order($i);
-                $items[$i]->store;
+                $items[$i]->store($clone);
             }
         }
         $self->{_id} = $new_stored_itemset->id;

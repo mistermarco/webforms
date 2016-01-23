@@ -25,9 +25,14 @@ use FB::Theme::Plain; # default theme
         confirmation_method         => "text",
         confirmation_text           => "Thank you for filling out the form!",
         confirmation_url            => "",
+        confirmation_email          => "",
         submission_method           => "email",
         submission_email            => "",
+        submission_email_csv        => 0,
         submission_email_subject    => "Form Submission",
+		submission_email_sender     => '',
+        can_be_continued            => 0,
+        confirm_before_submit       => 0,
     );
 
     sub defaults {
@@ -74,13 +79,23 @@ sub new {
             || $class->defaults('confirmation_text'),
         _confirmation_url    => $args{confirmation_url}
             || $class->defaults('confirmation_url'),
+        _confirmation_email  => $args{confirmation_email}
+            || $class->defaults('confirmation_email'),
         _submission_method   => $args{submission_method}
             || $class->defaults('submission_method'),
         _submission_email    => $args{submission_email}
             || $class->defaults('submission_email'),
+        _submission_email_csv        => $args{submission_email_csv}
+            || $class->defaults('submission_email_csv'),
         _submission_email_subject    => $args{submission_email_subject}
             || $class->defaults('submission_email_subject'),
+        _submission_email_sender    => $args{submission_email_sender}
+            || $class->defaults('submission_email_sender'),
         _creator             => $args{creator},
+        _can_be_continued    => $args{can_be_continued}
+            || $class->defaults('can_be_continued'),
+        _confirm_before_submit    => $args{confirm_before_submit}
+            || $class->defaults('confirm_before_submit'),
     };
     bless $self, $class;
     return $self;
@@ -158,18 +173,27 @@ sub new_from_object {
         _confirmation_method => $object->confirmation_method,
         _confirmation_text   => $object->confirmation_text,
         _confirmation_url    => $object->confirmation_url,
+        _confirmation_email  => $object->confirmation_email,
         _submission_method   => $object->submission_method,
         _submission_email    => $object->submission_email,
+        _submission_email_csv       => $object->submission_email_csv,
         _submission_email_subject   => $object->submission_email_subject,
+        _submission_email_sender    => $object->submission_email_sender,
         _total_database_submissions => $object->total_database_submissions,
         _nodes               => [],
         _added_nodes         => [],
         _updated_nodes       => [],
         _deleted_nodes       => [],
+        _users               => [],
         _creator             => $object->creator,
+        _can_be_continued    => $object->can_be_continued,
+        _confirm_before_submit => $object->confirm_before_submit,
     };
     bless $self, $class;
-  
+
+    my @users = $object->users;
+    $self->set_users(\@users);
+ 
     # Load the nodes, if any
     foreach my $node ($object->nodes) {
         $self->add_node($node);
@@ -181,6 +205,13 @@ sub new_from_object {
 # Accessors
 #
 
+sub set_users {
+    $_[0]->{_users} = $_[1];
+}
+
+sub users {
+    return $_[0]->{_users};
+}
 
 sub id {
   return $_[0]->{_id};
@@ -341,6 +372,14 @@ sub set_confirmation_url {
     $_[0]->{_confirmation_url} = $_[1];
 }
 
+sub confirmation_email {
+    $_[0]->{_confirmation_email};
+}
+
+sub set_confirmation_email {
+    $_[0]->{_confirmation_email} = $_[1];
+}
+
 sub submission_method {
     $_[0]->{_submission_method};
 }
@@ -357,12 +396,28 @@ sub set_submission_email {
     $_[0]->{_submission_email} = $_[1];
 }
 
+sub submission_email_csv {
+    return $_[0]->{_submission_email_csv};
+}
+
+sub set_submission_email_csv {
+    $_[0]->{_submission_email_csv} = $_[1];
+}
+
 sub submission_email_subject {
     return $_[0]->{_submission_email_subject};
 }
 
 sub set_submission_email_subject {
     $_[0]->{_submission_email_subject} = $_[1];
+}
+
+sub submission_email_sender {
+    return $_[0]->{_submission_email_sender};
+}
+
+sub set_submission_email_sender {
+    $_[0]->{_submission_email_sender} = $_[1];
 }
 
 sub total_database_submissions {
@@ -394,6 +449,30 @@ sub set_creator {
     $_[0]->{_creator} = $_[1];
 }
 
+sub can_be_continued {
+  if (defined $_[0]->{_can_be_continued}) {
+    return $_[0]->{_can_be_continued};
+  } else {
+    return 0;
+  }
+}
+
+sub set_can_be_continued {
+    $_[0]->{_can_be_continued} = $_[1];
+}
+
+sub confirm_before_submit{
+  if (defined $_[0]->{_confirm_before_submit}) {
+    return $_[0]->{_confirm_before_submit};
+  } else {
+    return 0;
+  }
+}
+
+sub set_confirm_before_submit{
+    $_[0]->{_confirm_before_submit} = $_[1];
+}
+
 ##############################################################################
 # Usage       : $form->has_required_fields
 # Purpose     : Returns the number of required fields in the form. Good to 
@@ -413,8 +492,38 @@ sub has_required_fields {
     return $count;
 }
 
+sub has_file_fields {
+  my $self = shift;
+  my $count = grep { $_->type eq 'input_file' } $self->nodes;
+  return $count;
+}
+
+sub get_email_fields {
+    my $self = shift;
+	my @emails = grep { $_->type eq 'input_email' } $self->nodes;
+	return \@emails;
+}
+
+sub get_file_fields {
+    my $self = shift;
+	my @files = grep { $_->type eq 'input_file' } $self->nodes;
+	return \@files;
+}
+
+sub get_header_fields {
+    my $self = shift;
+	my @headers = grep { $_->type eq 'output_section_header' } $self->nodes;
+	return \@headers;
+}
+
 sub validation_profile {
     my $self = shift;
+
+    # sometimes we want to validate for correctly filled in data, but
+	# don't care about required fields (such as in cases where an
+	# incomplete form needs to be saved
+	my $process_required = shift;
+
     my $validation_profile = {
 
         # Optional fields that are left empty are considered valid
@@ -452,14 +561,15 @@ sub validation_profile {
             # this prefix is used later, in the template
             prefix => 'error_',
             # the message to display when a field is missing
-            missing => 'Please fill in the following:',
+            missing => 'This field is required.',
             # we handle the formatting through CSS
             format => '%s',
             # constraint-specific messages
             constraints => {
-                'email' => 'Not a valid email format',
-                'phone' => 'Not a valid phone format',
-                'FV_URI_HTTP' => 'Not a valid URL format. (e.g. http://www.stanford.edu)',
+                'email' => 'Not a valid email format.',
+                'phone' => 'Not a valid phone format.',
+                'FV_URI_HTTP' => 'Not a valid URL format. (e.g. http://web.stanford.edu)',
+				'FV_num_int'  => 'Not a valid number. (e.g. 03923824)',
             },
         },
     };
@@ -468,9 +578,13 @@ sub validation_profile {
         my $node_validation_profile = $node->validation_profile;
         
         if (exists $node_validation_profile->{'required'}) {
-            push( @{$validation_profile->{'required'}},
-                  @{$node_validation_profile->{'required'}}
-            );
+		    # if we are bypassing required fields, push the required ones on the optional one
+		    if ($process_required == 1) {
+                push( @{$validation_profile->{'required'}}, @{$node_validation_profile->{'required'}});
+			}
+			else {
+                push( @{$validation_profile->{'optional'}}, @{$node_validation_profile->{'required'}});
+			}
         }
 
         if (exists $node_validation_profile->{'optional'}) {
@@ -479,7 +593,7 @@ sub validation_profile {
             );
         }
         
-        if (exists $node_validation_profile->{'require_some'}) {
+        if ((exists $node_validation_profile->{'require_some'}) && ($process_required == 1)) {
             foreach (keys %{$node_validation_profile->{'require_some'}} ) {
                 $validation_profile->{'require_some'}{$_}
                     = $node_validation_profile->{'require_some'}{$_};
@@ -567,11 +681,13 @@ sub set_to_deleted {
 
 sub store {
     my $self = shift;
+    my $clone = shift;
+    if (!defined($clone)) { $clone = 0; }
     my $form_id;
     
         
     # Does the form have an ID? If so, update the record
-    if (defined($self->id)) {
+    if ((defined($self->id)) && ($clone == 0)) {
         
         # Retrieve the form from storage
         my $stored_form = FB::DB::Form->retrieve($self->id);
@@ -589,10 +705,15 @@ sub store {
             confirmation_method => $self->confirmation_method,
             confirmation_text   => $self->confirmation_text,
             confirmation_url    => $self->confirmation_url,
+            confirmation_email  => $self->confirmation_email,
             submission_method   => $self->submission_method,
             submission_email    => $self->submission_email,
+            submission_email_csv        => $self->submission_email_csv,
             submission_email_subject    => $self->submission_email_subject,
+            submission_email_sender     => $self->submission_email_sender,
             creator             => $self->creator,
+            can_be_continued    => $self->can_be_continued,
+            confirm_before_submit => $self->confirm_before_submit,
         );
 
         $stored_form->update;
@@ -615,10 +736,15 @@ sub store {
                 confirmation_method => $self->confirmation_method,
                 confirmation_text   => $self->confirmation_text,
                 confirmation_url    => $self->confirmation_url,
+                confirmation_email  => $self->confirmation_email,
                 submission_method   => $self->submission_method,
                 submission_email    => $self->submission_email,
+                submission_email_csv        => $self->submission_email_csv,
                 submission_email_subject    => $self->submission_email_subject,
+                submission_email_sender     => $self->submission_email_sender,
                 creator             => $self->creator,
+                can_be_continued    => $self->can_be_continued,
+                confirm_before_submit => $self->confirm_before_submit,
             });
         
        # We set the ID of the in-memory form to that of the stored form
@@ -666,7 +792,7 @@ sub store {
             
             # Tell the node to store itself (it'll do the right thing
             # based on what type of object it is)
-            my $node_id = $nodes[$i]->store;
+            my $node_id = $nodes[$i]->store($clone);
             
             # Find or create a connection between the node and this
             # form in the database.
@@ -725,9 +851,9 @@ sub store {
     # If the form is live, is supposed to save submissions into a
     # database and such database doesn't already exist, create one
     if ( $self->is_live
-        && ($self->submission_method eq "database"
-            || $self->submission_method eq "both")
-       ) {
+        && (($self->submission_method eq "database" || $self->submission_method eq "both") 
+			|| ($self->can_be_continued == 1))
+		) {
            
         # set the database name, using form_ as the prefix and the form id
         my $db_name = "form_" . $self->id;
@@ -743,7 +869,7 @@ sub store {
             $dbh->do("create database $db_name");
             
             # now create submission table
-            my $statement = "create table $db_name.submission (`submission_id` int(11) UNSIGNED NOT NULL auto_increment,`date_submitted` timestamp NOT NULL default CURRENT_TIMESTAMP,`remote_user` varchar(255) DEFAULT NULL,`remote_host` varchar(255) DEFAULT NULL, PRIMARY KEY  (`submission_id`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;";
+            my $statement = "create table $db_name.submission (`submission_id` int(11) UNSIGNED NOT NULL auto_increment,`date_submitted` timestamp NOT NULL default CURRENT_TIMESTAMP,`remote_user` varchar(255) DEFAULT NULL,`remote_host` varchar(255) DEFAULT NULL, `complete` int(1) DEFAULT 1, PRIMARY KEY  (`submission_id`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;";
             $dbh->do($statement);
             
             foreach my $node ($self->nodes) {
@@ -924,6 +1050,18 @@ sub get_node_at {
     return @{$self->{_nodes}}[$location];
 }
 
+sub get_node_position_by_id {
+  my $self = shift;
+  my $node_id = shift;
+  my @nodes = $self->nodes;
+  for my $i (0 .. $#nodes) {
+    if ($nodes[$i]->{'_id'} == $node_id) {
+      return $i;
+    }
+  }
+  return -1;
+}
+
 ##############################################################################
 # Usage       : ????
 # Purpose     : ????
@@ -1069,6 +1207,31 @@ sub move_node_down {
 }
 
 ##############################################################################
+# Usage       : $form->sort_nodes(@sorted_node_ids);
+# Purpose     : Sort the nodes based on the order of their IDs (Ajax call)
+# Returns     : ????
+# Parameters  : an array of node IDs
+# Throws      : no exceptions
+# Comments    : n/a
+# See Also    : n/a
+
+sub sort_nodes {
+  my $self = shift;
+  my $sorted_node_ids = shift;
+  my @sorted_node_ids = @{$sorted_node_ids};
+  my %new_node_positions;
+
+  for (my $i = 0; $i <= $#sorted_node_ids; $i++) {
+    $new_node_positions{$sorted_node_ids[$i]} = $i;
+  }
+
+  # get the current nodes
+  my @nodes = @{$self->nodes};
+
+  @{$self->{_nodes}} = sort { $new_node_positions{$a->id} <=> $new_node_positions{$b->id} } @nodes;
+}
+
+##############################################################################
 # Usage       : ????
 # Purpose     : ????
 # Returns     : ????
@@ -1083,6 +1246,7 @@ sub move_node_down {
 sub as_html {
     my $self = shift; 
     my $page = shift;
+
     my $html_output = "";
     my $template = Template->new( { 
         INCLUDE_PATH => $self->templates_path

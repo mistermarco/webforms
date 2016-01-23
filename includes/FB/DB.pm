@@ -9,6 +9,7 @@ use base 'Class::DBI';
 
 # Setup the connection (does not connect yet)
 my $connection = FB::DB->connection('dbi:mysql:fb:127.0.0.1','root','');
+#my $connection = FB::DB->connection('dbi:mysql:fb:127.0.0.1','root','');
 
 package FB::DB::User;
 use base 'FB::DB';
@@ -41,9 +42,19 @@ __PACKAGE__->table('form');
 __PACKAGE__->columns(Primary => qw/form_id/);
 __PACKAGE__->columns(
     Essential => qw/form_id path url name description is_live is_deleted date_deleted deleted_by template css templates_path date_created theme confirmation_method
-    confirmation_text confirmation_url submission_method submission_email submission_email_subject has_submission_database total_submissions total_database_submissions last_submission_date creator/);
+    confirmation_text confirmation_url confirmation_email submission_method submission_email submission_email_csv submission_email_subject submission_email_sender has_submission_database total_submissions total_database_submissions last_submission_date creator can_be_continued confirm_before_submit/);
 __PACKAGE__->has_many(
     nodes => FB::DB::Node, 'form_id', { order_by => 'sort_order' });
+#__PACKAGE__->has_many(users => [FB::DB::User_Form => 'user'], { order_by => 'user DESC' });
+
+__PACKAGE__->set_sql('users' => qq{select u.user_id from user as u join user_form as uf on (u.user_id = uf.user) and uf.form = ? order by u.identifier;});
+
+sub users {
+  my $instance = shift;
+  my $sth = FB::DB::Form->sql_users;
+  $sth->execute($instance->form_id);
+  return FB::DB::User->sth_to_objects($sth);
+}
 
 __PACKAGE__->set_sql('update_submission_count' => qq{update form set total_submissions = total_submissions + 1, last_submission_date = NOW() where form_id = ?});
 

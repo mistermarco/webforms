@@ -170,11 +170,13 @@ sub sort_order {
 
 sub store {
     my $self = shift;
+    my $clone = shift;
+    if (!defined($clone)) { $clone = 0; }
   
     # does this object have an ID?
     # If yes, update the record
     # If not, create a new record
-    if (defined($self->id)) {
+    if ((defined($self->id)) && ($clone == 0)) {
         my $stored_object = FB::DB::Item->retrieve($self->id);
         $stored_object->set(
             label      => $self->label, 

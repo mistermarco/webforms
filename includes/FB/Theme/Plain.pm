@@ -29,7 +29,7 @@ sub new {
     my $self = {
         _template    => "simple_form.tt",
         _css         =>     
-            "http://www.stanford.edu/dept/its/projects/documentation/"
+            "http://web.stanford.edu/dept/its/projects/documentation/"
           . "form_builder/simple.css",
         _templates_path => $args{templates_path}
         || $class->SUPER::default_path,

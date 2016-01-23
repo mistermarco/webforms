@@ -1,0 +1,8 @@
+<tr [% IF alternate_class %]class="alternate"[% END %]>
+  <th class="question" scope="row" id="legend_for_[% element.id %]">[% element.label %]</th>
+  [% FOREACH item = element.items %]
+  <td class="[% item.class %]">
+      <input type="radio" id="item_[% element.id %]_[% item.id %]" class="[% item.class %]" name="[% element.name %]" value="[% item.label %]" aria-describedby="legend_for_[% element.id %]" [% IF (!(CGI.param(element.name).defined) && loop.first) %][% END %][% IF element.value == item.value || CGI.param(element.name) == item.value %]checked="checked"[% END %] [% IF element.is_required %]aria-required="true" required[% END %] [% IF page.preview %]readonly="readonly" aria-readonly="true" disabled="disabled" aria-disabled="true"[% END %] /><label for="item_[% element.id %]_[% item.id %]" class="hide" >[% item.value %]</label>
+  </td>
+  [%- END %]
+</tr>

@@ -8,25 +8,25 @@ use_ok('FB');
 my $fb = FB->new();
 
 my %form_name_tests = (
-    "http://www.stanford.edu/test.fb" => 1,
-    "http://www.stanford.edu/_.fb" => 1,
-    "http://www.stanford.edu/test123.fb" => 1,
-    "http://www.stanford.edu/123test.fb" => 1,
-    "http://www.stanford.edu/my-test.fb" => 1,
-    "http://www.stanford.edu/my_test.fb" => 1,
-    "http://www.stanford.edu/my test.fb" => 0,
-    "http://www.stanford.edu/~mrmarco/test.fb" => 1,
-    "http://www.stanford.edu/~mrmarco/a/test.FB" => 1,
-    "http://www.stanford.edu/~mrmarco/a/test.F" => 0,
-    "http://www.stanford.edu/~mrmarco/a/.F" => 0,
-    "http://www.stanford.edu/~mrmarco/a/" => 0,
-    "http://www.stanford.edu/~mrmarco/a" => 0,
-    "http://www.stanford.edu/~mrmarco/a/test.fb/a" => 0,
-    "http://www.stanford.edu/~mrmarco/a/test.fb/" => 0,
-    "http://www.stanford.edu/~mrmarco/a/test.fbt" => 0,
-    "http://www.stanford.edu/~mrmarco/a/test.tfb" => 0,
-    "http://www.stanford.edu/~mrmarco/a/test..fb" => 0,
-    "http://www.stanford.edu/~mrmarco/a/test.fb.fb" => 0,
+    "http://web.stanford.edu/test.fb" => 1,
+    "http://web.stanford.edu/_.fb" => 1,
+    "http://web.stanford.edu/test123.fb" => 1,
+    "http://web.stanford.edu/123test.fb" => 1,
+    "http://web.stanford.edu/my-test.fb" => 1,
+    "http://web.stanford.edu/my_test.fb" => 1,
+    "http://web.stanford.edu/my test.fb" => 0,
+    "http://web.stanford.edu/~mrmarco/test.fb" => 1,
+    "http://web.stanford.edu/~mrmarco/a/test.FB" => 1,
+    "http://web.stanford.edu/~mrmarco/a/test.F" => 0,
+    "http://web.stanford.edu/~mrmarco/a/.F" => 0,
+    "http://web.stanford.edu/~mrmarco/a/" => 0,
+    "http://web.stanford.edu/~mrmarco/a" => 0,
+    "http://web.stanford.edu/~mrmarco/a/test.fb/a" => 0,
+    "http://web.stanford.edu/~mrmarco/a/test.fb/" => 0,
+    "http://web.stanford.edu/~mrmarco/a/test.fbt" => 0,
+    "http://web.stanford.edu/~mrmarco/a/test.tfb" => 0,
+    "http://web.stanford.edu/~mrmarco/a/test..fb" => 0,
+    "http://web.stanford.edu/~mrmarco/a/test.fb.fb" => 0,
     "/test.fb" => 0,
     "test.fb" => 0,
     
@@ -41,20 +41,20 @@ foreach (keys %form_name_tests) {
 }
 
 my %host_name_tests = (
-    "http://www.stanford.edu/test.fb" => 1,
-    "http://ww.stanford.edu/test.fb" => 0,
+    "http://web.stanford.edu/test.fb" => 1,
+    "http://we.stanford.edu/test.fb" => 0,
     "http://w.stanford.edu/test.fb" => 0,
     "http://stanford.edu/test.fb" => 0,
     "http://it-services.stanford.edu/test.fb" => 0,
     "http://vanity.stanford.edu/test.fb" => 0,
-    "http://www/test.fb" => 0,
-    "http://www1.stanford.edu/test.fb" => 0,
-    "http://www.new.stanford.edu/test.fb" => 0,
-    "http://www.new.stanford.org/test.fb" => 0,
-    "http://www.new.stanfrd.edu/test.fb" => 0,
-    "http://www.new.stanford.ed/test.fb" => 0,
-    "http://www.stanford/test.fb" => 0,
-    "http://www.stanford..edu/test.fb" => 0,
+    "http://web/test.fb" => 0,
+    "http://web1.stanford.edu/test.fb" => 0,
+    "http://web.new.stanford.edu/test.fb" => 0,
+    "http://web.new.stanford.org/test.fb" => 0,
+    "http://web.new.stanfrd.edu/test.fb" => 0,
+    "http://web.new.stanford.ed/test.fb" => 0,
+    "http://web.stanford/test.fb" => 0,
+    "http://web.stanford..edu/test.fb" => 0,
 );
 
 print "Host Name Checks...\n";
@@ -69,40 +69,40 @@ print "URL to File Checks...\n";
 my %url_to_file_tests = (
     # HTTP - WWW
     
-    "WWW.STANFORD.EDU" => { file => "/afs/.ir/group/homepage/docs" },
-    "www.stanford.edu" => { file => "/afs/.ir/group/homepage/docs" },
-    "www.stanford.edu/group/foo"
+    "WEB.STANFORD.EDU" => { file => "/afs/.ir/group/homepage/docs" },
+    "web.stanford.edu" => { file => "/afs/.ir/group/homepage/docs" },
+    "web.stanford.edu/group/foo"
         => { file => "/afs/ir/group/foo/WWW" },
-    "www.stanford.edu/dept/foo"
+    "web.stanford.edu/dept/foo"
         => { file => "/afs/ir/dept/foo/WWW",  rest => "" },
-    "www.stanford.edu/class/foo"
+    "web.stanford.edu/class/foo"
         => { file => "/afs/ir/class/foo/WWW" },
-    "www.stanford.edu/people/foo"
+    "web.stanford.edu/people/foo"
         => { file => "/afs/ir/users/f/o/foo/WWW"},
-    "www.stanford.edu/~foo"
+    "web.stanford.edu/~foo"
         => { file => "/afs/ir/users/f/o/foo/WWW"},
-    "www.stanford.edu/services/foo"
+    "web.stanford.edu/services/foo"
         => { file => "/afs/.ir/dist/web/services/foo"},
-#    "www.stanford.edu/services"
+#    "web.stanford.edu/services"
 #        => { file => ""},
     
     # HTTP - CGI-BIN
 
-    "WWW.STANFORD.EDU/cgi-bin"
+    "WEB.STANFORD.EDU/cgi-bin"
         => { file => "/afs/.ir/group/homepage/cgi-bin" },
-    "www.stanford.edu/cgi-bin"
+    "web.stanford.edu/cgi-bin"
         => { file => "/afs/.ir/group/homepage/cgi-bin" },
-    "www.stanford.edu/group/foo/cgi-bin"
+    "web.stanford.edu/group/foo/cgi-bin"
         => { file => "/afs/ir/group/foo/cgi-bin" },
-    "www.stanford.edu/dept/foo/cgi-bin"
+    "web.stanford.edu/dept/foo/cgi-bin"
         => { file => "/afs/ir/dept/foo/cgi-bin"},
-    "www.stanford.edu/class/foo/cgi-bin"
+    "web.stanford.edu/class/foo/cgi-bin"
         => { file => "/afs/ir/class/foo/cgi-bin" },
-    "www.stanford.edu/people/foo/cgi-bin"
+    "web.stanford.edu/people/foo/cgi-bin"
         => { file => "/afs/ir/users/f/o/foo/cgi-bin"},
-    "www.stanford.edu/~foo/cgi-bin"
+    "web.stanford.edu/~foo/cgi-bin"
         => { file => "/afs/ir/users/f/o/foo/cgi-bin"},
-    "www.stanford.edu/services/foo/cgi-bin"
+    "web.stanford.edu/services/foo/cgi-bin"
         => { file => "/afs/.ir/dist/web/services/foo/cgi-bin"},    
 
 );

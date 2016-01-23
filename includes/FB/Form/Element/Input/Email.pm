@@ -17,7 +17,7 @@ use Data::FormValidator::Constraints qw(:closures :regexp_common);
         label    => "Email",
         class    => "email",
         type     => "input_email",
-        template => "input_text.tt",
+        template => "input_email.tt",
     );
     
     sub defaults {

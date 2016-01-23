@@ -9,7 +9,7 @@ use warnings;
     sub default_template { return $default_template; };
     
     my $default_css
-        = "http://www.stanford.edu/dept/its/projects/documentation/"
+        = "http://web.stanford.edu/dept/its/projects/documentation/"
         . "form_builder/simple.css";
     sub default_css { return $default_css; }
 

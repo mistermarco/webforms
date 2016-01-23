@@ -24,6 +24,9 @@ our @ISA = qw(FB::Form::Element::Output);
         my $property = shift;
         return $defaults{$property};
     }
+
+    # The label is not required for Section Headers
+	sub is_label_required { return 0; }
 }
 
 1;

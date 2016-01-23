@@ -39,6 +39,7 @@ sub _init {
         FB::Form::Element::Select::LikertItem->new(
             class => "likert_item",
             label => "Question One: ",
+            is_required_in_collection => 1,
     );
 
     # We store the first element's itemset so that it 

@@ -1,0 +1,60 @@
+<div class="content-box">
+  [% IF page.confirmations.manage -%]
+    <div class="confirm-box">
+      <h2>[% page.confirmations.manage.header %]</h2>
+      <p>[% page.confirmations.manage.message %]</p>
+    </div>
+  [% END -%]
+  [% IF page.errors.manage -%]
+    <div class="error-box">
+      <h2>[% page.errors.manage.header %]</h2>
+      <p>[% page.errors.manage.message %]</p>
+    </div>
+  [% END -%]
+  <h3>Admins</h3>
+    <p>Share the administration of this form with other users by adding them below. Your co-admins will then be able to manage the form and the data collected.</p>
+    <table class="manage">
+      <tr>
+        <th>Admin</th>
+	    <th>Delete</th>
+      </tr>
+      [% FOREACH admin = values.form.users %]
+        <tr>
+          [% IF admin.identifier != values.form.creator %]
+            [% IF admin.identifier == user.identifier %]
+              <td>[% admin.name %] ([% admin.identifier %])</td>
+              <td>
+                <form action="formbuilder.cgi" method="post">
+                  <input type="hidden" name="action" value="remove_admin" />
+                  <input type="hidden" name="form_id" value="[% form.id %]">
+                  <input type="hidden" name="user_id" value="[% user.id %]">
+                  <input type="submit" value="Remove Yourself" class="btn btn-danger" />
+                </form>
+              </td>
+            [% ELSE %]
+              <td>[% admin.name %] ([% admin.identifier %])</td>
+              <td>
+                <form action="formbuilder.cgi" method="post">
+                  <input type="hidden" name="action" value="remove_admin" />
+                  <input type="hidden" name="form_id" value="[% form.id %]">
+                  <input type="hidden" name="user_id" value="[% admin.id %]">
+                  <input type="submit" value="Remove" class="btn btn-danger" />
+                </form>
+              </td>
+            [% END %]
+          [% ELSE %]
+            <td>[% admin.name %] ([% admin.identifier %])</td>
+            <td>CREATOR</td>
+          [% END %]
+        </tr>
+      [% END %]
+    </table>
+    <form action="formbuilder.cgi" method="post">
+      <input type="hidden" name="action" value="add_admin" />
+      <input type="hidden" name="form_id" value="[% form.id %]">
+      <label for="new_admin">New admin's primary SUNetID:</label>
+	  <input id="new_admin" name="new_admin" type="text" value="" />
+	  <p>e.g. <strong>[% user.identifier %]</strong>, not '[% user.email %]'.</p>
+      <input type="submit" value="Add Admin" class="btn btn-primary" />
+    </form>
+  </div>

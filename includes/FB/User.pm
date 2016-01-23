@@ -67,6 +67,19 @@ sub new_from_store {
     }
 }
 
+sub new_from_store_by_id {
+    my $class = shift;
+    my $user_id = shift;
+    my ($stored_user)
+        = FB::DB::User->search( user_id => $user_id);
+    if ($stored_user) {
+        return $class->new_from_object($stored_user);
+    }
+    else {
+        return undef;
+    }
+}
+
 sub new_from_object {
     my $class = shift;
     my $object = shift;
@@ -232,6 +245,24 @@ sub add_form {
     my $form_object = FB::DB::Form->retrieve($form->id);
     push @{$self->forms}, $form_object;
     return $connection;
+}
+
+sub remove_from_admin {
+  use Data::Dumper;
+  use CGI;
+  my $q = new CGI;
+  print $q->header;
+  my $self = shift;
+  my $form = shift;
+
+  my $connection
+    = FB::DB::User_Form->retrieve(
+	  user => $self->id,
+	  form => $form->id,
+	  role => 'admin',
+	  );
+
+  $connection->delete();
 }
 
 ##############################################################################

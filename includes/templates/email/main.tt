@@ -1,0 +1,33 @@
+[% form.name %]
+-----------------------------------------------------------------------------
+
+[% FOREACH element = form.nodes -%]
+[% NEXT IF NOT element.can_be_submitted -%]
+[% field_name = element.name %]
+[% element.label %]
+[% IF element.elements -%]
+[% FOREACH subelement = element.elements -%]
+[% subfield_name = subelement.name -%]
+[% IF values.$subfield_name != "" -%]
+[% IF element.is_custom -%]
+[% values.$subfield_name | indent(2) %]
+[% ELSE -%]
+[% subelement.label | indent(2) %]: [% values.$subfield_name %]
+[% END -%]
+[% END -%]
+[% END -%]
+[% ELSE -%]
+[% FOREACH value = values.$field_name.list -%]
+[% IF value != "" -%]
+[% value | indent(2) %]
+[% END -%]
+[% END -%]
+[% END -%]
+[% END -%]
+
+-----------------------------------------------------------------------------
+Submission Details
+Timestamp:   [% submission.timestamp %]
+Remote User: [% IF submission.remote_user == '' %]Anonymous[% ELSE %][% submission.remote_user %][% END %]
+Remote Host: [% submission.remote_host %]
+Form URL: [% form.url %]

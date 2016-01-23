@@ -1,0 +1,7 @@
+[% INCLUDE form_header.tt %]
+[% IF page.success %]
+    [% INCLUDE success.tt %]
+[% ELSE %]
+    [% INCLUDE form.tt %]
+[% END %]
+[% INCLUDE form_footer.tt %]
