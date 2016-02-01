@@ -26,6 +26,20 @@ Rename includes/config_sample.txt to config.txt and fill in the appropriate valu
 .htaccess
 Rename .htaccess_sample to .htaccess and point the AuthUserFile to the location for your .htpasswd file (it needs to be the absolute path). By default, the username is test and password is test.
 
+DEV Environment
+
+To create a docker image: 
+
+docker build -t webforms -f docker/Dockerfile .  
+
+To run and log into the server:
+
+docker run -Pit webforms /bin/bash
+
+Once logged in, run supervisor to start Apache / MySQL (this happens automatically if you leave out the /bin/bash part)
+
+/usr/bin/supervisord &
+
 TESTING
 
 CONFIGURATION
