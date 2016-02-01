@@ -26,9 +26,6 @@ Rename includes/config_sample.txt to config.txt and fill in the appropriate valu
 .htaccess
 Rename .htaccess_sample to .htaccess and point the AuthUserFile to the location for your .htpasswd file (it needs to be the absolute path). By default, the username is test and password is test.
 
-Javascript
-You will need to install SpryTabbedPanels.css and SpryTabbedPanels.js from Adobe's Spry Framework under the /SpryAssets directory (Download them here: http://labs.adobe.com/technologies/spry/home.html)
-
 TESTING
 
 CONFIGURATION
