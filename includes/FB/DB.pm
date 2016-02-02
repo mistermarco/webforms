@@ -7,8 +7,31 @@
 package FB::DB;
 use base 'Class::DBI';
 
+use AppConfig qw(:expand :argcount);
+
+my $config = AppConfig->new(
+    'db_host' => {
+        ARGCOUNT => ARGCOUNT_ONE,
+        DEFAULT  => '127.0.0.1',
+    },
+    'db_port' => {
+        ARGCOUNT => ARGCOUNT_ONE,
+        DEFAULT  => '3306',
+    },
+    'db_username'           => {
+        ARGCOUNT => ARGCOUNT_ONE,
+        DEFAULT => 'root',
+    },
+    'db_password'     => {
+        ARGCOUNT => ARGCOUNT_ONE,
+        DEFAULT => '',
+    },
+);
+
+$config->file('includes/config.txt');
+
 # Setup the connection (does not connect yet)
-my $connection = FB::DB->connection('dbi:mysql:fb:127.0.0.1','root','');
+my $connection = FB::DB->connection('dbi:mysql:fb:' . $config->db_host . ':' . $config->db_port, $config->db_username, $config->db_password);
 #my $connection = FB::DB->connection('dbi:mysql:fb:127.0.0.1','root','');
 
 package FB::DB::User;

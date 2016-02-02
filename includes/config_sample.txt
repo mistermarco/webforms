@@ -10,3 +10,9 @@ name = localhost
 max_forms = 25
 can_create_new = 1
 can_create_automatically = 1
+
+[db]
+host = 127.0.0.1
+port = 3306
+username = root
+password = 
